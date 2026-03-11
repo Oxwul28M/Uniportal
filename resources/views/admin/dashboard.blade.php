@@ -61,6 +61,47 @@
                 <p class="text-gray-900 text-3xl font-bold">45</p>
             </div>
         </div>
+
+        <!-- Tasa BCV (Admin Sync) -->
+        <div x-data="{
+            fetchingRate: false,
+            async fetchBcvRate() {
+                if(this.fetchingRate) return;
+                this.fetchingRate = true;
+                try {
+                    const response = await fetch('{{ route('api.bcv.update') }}', {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const data = await response.json();
+                    if(data.success) {
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'Error al actualizar la tasa del BCV.');
+                    }
+                } catch(e) { 
+                    console.error(e); 
+                    alert('No se pudo conectar con el servidor.');
+                }
+                this.fetchingRate = false;
+            }
+        }" class="group flex flex-col gap-3 rounded-2xl p-6 bg-slate-50 border border-gray-200 shadow-sm transition-all hover:shadow-md">
+            <div class="flex items-center justify-between">
+                <p class="text-brand-700 text-xs font-bold uppercase tracking-widest">Tasa BCV Oficial</p>
+                <button @click="fetchBcvRate()" :disabled="fetchingRate" class="text-brand-600 hover:text-brand-800 transition-colors bg-white rounded-lg p-1.5 shadow-sm border border-gray-100 disabled:opacity-50" title="Sincronizar BCV">
+                    <span class="material-symbols-outlined text-sm block" :class="{'animate-spin': fetchingRate}">sync</span>
+                </button>
+            </div>
+            <div class="flex flex-col gap-1">
+                <p class="text-gray-900 text-3xl font-bold">
+                    {{ number_format(\Illuminate\Support\Facades\DB::table('exchange_rates')->latest('fetched_at')->first()->rate ?? 61.20, 2) }} 
+                    <span class="text-sm font-medium text-gray-500">Bs/$</span>
+                </p>
+                <p class="text-[10px] text-gray-400 font-medium">
+                    Última actualización: {{ \Illuminate\Support\Facades\DB::table('exchange_rates')->latest('fetched_at')->first() ? \Carbon\Carbon::parse(\Illuminate\Support\Facades\DB::table('exchange_rates')->latest('fetched_at')->first()->fetched_at)->diffForHumans() : 'N/A' }}
+                </p>
+            </div>
+        </div>
     </div>
 
     <!-- Dashboard Content Grid -->
