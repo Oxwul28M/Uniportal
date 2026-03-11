@@ -10,14 +10,26 @@
             </div>
         </div>
 
-        <div class="bg-brand-50 border border-brand-100 px-6 py-3 rounded-2xl flex items-center gap-3">
-            <span class="relative flex h-3 w-3">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-            </span>
-            <span class="text-[10px] font-black text-brand-900 uppercase tracking-widest">Actas Abiertas — 2026-I</span>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('teacher.grades.export', ['course_id' => $course->id]) }}" 
+               class="bg-white text-slate-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-100 shadow-sm hover:border-brand-800 hover:text-brand-800 transition-all flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">download</span>
+                Exportar Plantilla
+            </a>
+            <button @click="$dispatch('open-import-modal')" 
+                    class="bg-white text-brand-800 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-brand-100 shadow-sm hover:bg-brand-50 transition-all flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">upload</span>
+                Importar Notas (CSV)
+            </button>
         </div>
     </div>
+
+    @if(session('success'))
+        <div class="mb-8 p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl text-sm font-bold flex items-center gap-3">
+            <span class="material-symbols-outlined">check_circle</span>
+            {{ session('success') }}
+        </div>
+    @endif
 
     <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden" x-data="{ loading: false }">
         <form action="{{ route('teacher.grades.store') }}" method="POST" @submit="loading = true">
@@ -32,92 +44,127 @@
                     </div>
                     <div>
                         <p class="text-lg font-black text-slate-800 tracking-tight">{{ $students->count() }} Estudiantes</p>
-                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Listado oficial de cursantes</p>
+                        <p class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Periodo Lectivo: 2026-I</p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-4">
-                    <button type="submit" :disabled="loading"
-                        class="bg-brand-800 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand-800/30 hover:bg-brand-900 hover:-translate-y-0.5 transition-all flex items-center gap-3 disabled:opacity-50 group">
-                        <template x-if="loading">
-                            <span class="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                        </template>
-                        <span x-text="loading ? 'PROCESANDO...' : 'GUARDAR CALIFICACIONES'"></span>
-                        <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform" x-show="!loading">save</span>
-                    </button>
-                </div>
+                <button type="submit" :disabled="loading"
+                    class="bg-brand-800 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand-800/30 hover:bg-brand-900 hover:-translate-y-0.5 transition-all flex items-center gap-3 disabled:opacity-50 group">
+                    <template x-if="loading">
+                        <span class="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                    </template>
+                    <span x-text="loading ? 'PROCESANDO...' : 'GUARDAR CAMBIOS'"></span>
+                    <span class="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform" x-show="!loading">save</span>
+                </button>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-white">
-                            <th class="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50">Estudiante</th>
-                            <th class="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 text-center">ID / Matrícula</th>
-                            <th class="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 text-center">Puntuación (0-20)</th>
-                            <th class="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 text-right">Estatus</th>
+                            <th class="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50">Estudiante</th>
+                            <th class="px-4 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 text-center">Corte 1</th>
+                            <th class="px-4 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 text-center">Corte 2</th>
+                            <th class="px-4 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 text-center">Corte 3</th>
+                            <th class="px-4 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 text-center">Corte 4</th>
+                            <th class="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 text-center">Final (20)</th>
+                            <th class="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50 text-right">Estatus</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50">
                         @foreach($students as $student)
                             @php
-                                $val = $grades[$student->id] ?? null;
-                                $isPassing = $val !== null && $val >= 10;
+                                $gModel = $grades[$student->id] ?? null;
                             @endphp
-                            <tr class="hover:bg-brand-50/20 transition-all group/row" x-data="{ grade: {{ $val ?? 'null' }} }">
-                                <td class="px-10 py-6">
-                                    <div class="flex items-center gap-5">
-                                        <div class="relative">
-                                            <div class="size-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 border border-white shadow-sm flex items-center justify-center font-black text-slate-500 text-sm group-hover/row:scale-110 group-hover/row:rotate-3 transition-all duration-500">
-                                                {{ strtoupper(substr($student->name, 0, 2)) }}
-                                            </div>
-                                            <div class="absolute -right-1 -bottom-1 size-4 rounded-full border-2 border-white {{ $val !== null ? ($isPassing ? 'bg-emerald-500' : 'bg-rose-500') : 'bg-slate-300' }}"></div>
+                            <tr class="hover:bg-brand-50/20 transition-all group/row" 
+                                x-data="{ 
+                                    e1: {{ $gModel->eval1 ?? 0 }}, 
+                                    e2: {{ $gModel->eval2 ?? 0 }}, 
+                                    e3: {{ $gModel->eval3 ?? 0 }}, 
+                                    e4: {{ $gModel->eval4 ?? 0 }},
+                                    get final() { 
+                                        let avg = (parseFloat(this.e1) + parseFloat(this.e2) + parseFloat(this.e3) + parseFloat(this.e4)) / 4;
+                                        return (avg / 5).toFixed(1);
+                                    }
+                                }">
+                                <td class="px-8 py-6">
+                                    <div class="flex items-center gap-4">
+                                        <div class="size-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-slate-400 text-xs">
+                                            {{ strtoupper(substr($student->name, 0, 2)) }}
                                         </div>
                                         <div>
-                                            <p class="text-sm font-black text-slate-800 leading-tight tracking-tight">{{ $student->name }}</p>
-                                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{{ $student->email }}</p>
+                                            <p class="text-xs font-black text-slate-800 leading-tight">{{ $student->name }}</p>
+                                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">ID: #{{ $student->id }}</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-10 py-6 text-center">
-                                    <span class="px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-black uppercase rounded-lg">#{{ str_pad($student->id, 5, '0', STR_PAD_LEFT) }}</span>
-                                </td>
-                                <td class="px-10 py-6">
-                                    <div class="flex items-center justify-center">
-                                        <div class="relative group/input max-w-[100px]">
-                                            <input type="number" step="0.5" max="20" min="0" 
-                                                name="grades[{{ $student->id }}]"
-                                                x-model="grade"
-                                                class="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 text-sm font-black text-slate-800 text-center focus:ring-4 focus:ring-brand-800/10 focus:border-brand-800 transition-all outline-none"
-                                                placeholder="-">
+                                @for($i = 1; $i <= 4; $i++)
+                                    <td class="px-2 py-6">
+                                        <div class="flex justify-center">
+                                            <input type="number" step="1" max="100" min="0" 
+                                                name="grades[{{ $student->id }}][eval{{$i}}]"
+                                                x-model="e{{$i}}"
+                                                class="w-16 bg-slate-50 border border-slate-100 rounded-xl px-2 py-3 text-[11px] font-black text-slate-700 text-center focus:ring-4 focus:ring-brand-800/10 focus:border-brand-800 transition-all outline-none"
+                                                placeholder="0">
                                         </div>
-                                    </div>
+                                    </td>
+                                @endfor
+                                <td class="px-8 py-6 text-center">
+                                    <span class="text-lg font-black text-brand-800 font-mono tracking-tighter" x-text="final"></span>
                                 </td>
-                                <td class="px-10 py-6 text-right">
-                                    <template x-if="grade !== null && grade !== ''">
-                                        <span :class="grade >= 10 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'"
-                                            class="px-4 py-1.5 text-[9px] font-black uppercase rounded-full border tracking-widest shadow-sm">
-                                            <span x-text="grade >= 10 ? 'Aprobado' : 'Reprobado'"></span>
-                                        </span>
-                                    </template>
-                                    <template x-if="grade === null || grade === ''">
-                                        <span class="px-4 py-1.5 text-[9px] font-black uppercase rounded-full border border-slate-100 bg-slate-50 text-slate-400 tracking-widest">
-                                            Pendiente
-                                        </span>
-                                    </template>
+                                <td class="px-8 py-6 text-right">
+                                    <span :class="final >= 10 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'"
+                                        class="px-3 py-1 text-[8px] font-black uppercase rounded-full border border-current/20 tracking-widest shadow-sm">
+                                        <span x-text="final >= 10 ? 'Aprobado' : 'Reprobado'"></span>
+                                    </span>
                                 </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
-
-            @if($students->isEmpty())
-                <div class="p-20 text-center">
-                    <span class="material-symbols-outlined text-5xl text-slate-200 mb-4 block">person_off</span>
-                    <p class="text-slate-400 font-medium">No hay estudiantes inscritos en esta sección.</p>
-                </div>
-            @endif
         </form>
+    </div>
+
+    <!-- Import Modal -->
+    <div x-data="{ open: false }" 
+         x-cloak 
+         @open-import-modal.window="open = true"
+         x-show="open" 
+         class="fixed inset-0 z-[60] flex items-center justify-center p-6 sm:p-0">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" @click="open = false"></div>
+        
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg relative overflow-hidden transform transition-all">
+            <div class="p-8 border-b border-slate-50 flex items-center justify-between">
+                <h3 class="text-xl font-black text-slate-800">Importar Calificaciones</h3>
+                <button @click="open = false" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            
+            <form action="{{ route('teacher.grades.import') }}" method="POST" enctype="multipart/form-data" class="p-8">
+                @csrf
+                <input type="hidden" name="course_id" value="{{ $course->id }}">
+                <input type="hidden" name="period" value="2026-I">
+
+                <div class="mb-8">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Seleccionar Archivo (CSV)</label>
+                    <div class="relative group">
+                        <input type="file" name="file" required
+                               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                        <div class="border-2 border-dashed border-slate-100 rounded-[2rem] p-10 text-center group-hover:bg-brand-50 group-hover:border-brand-200 transition-all">
+                            <span class="material-symbols-outlined text-4xl text-slate-200 mb-2 group-hover:text-brand-800">upload_file</span>
+                            <p class="text-sm font-bold text-slate-500">Arrastra tu archivo o haz clic aquí</p>
+                            <p class="text-[10px] text-slate-400 mt-2 uppercase tracking-tight">Formato aceptado: .csv (Semicolons)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <button type="button" @click="open = false" class="flex-1 px-8 py-4 border border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">Cancelar</button>
+                    <button type="submit" class="flex-1 px-8 py-4 bg-brand-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-brand-800/30 hover:bg-brand-900 transition-all">Subir y Procesar</button>
+                </div>
+            </form>
+        </div>
     </div>
 </x-dashboard-layout>

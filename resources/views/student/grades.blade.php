@@ -17,46 +17,52 @@
             <table class="w-full text-left">
                 <thead class="bg-slate-50 border-b border-slate-100">
                     <tr>
-                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Asignatura
-                        </th>
-                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Profesor
-                        </th>
-                        <th
-                            class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">
-                            Nota Final</th>
-                        <th
-                            class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">
-                            Resultado</th>
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Asignatura / Docente</th>
+                        <th class="px-3 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">C1</th>
+                        <th class="px-3 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">C2</th>
+                        <th class="px-3 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">C3</th>
+                        <th class="px-3 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">C4</th>
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Final (20)</th>
+                        <th class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Resultado</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-50">
                     @forelse($grades as $grade)
-                        <tr class="hover:bg-slate-50/50 transition-colors">
+                        <tr class="hover:bg-slate-50/50 transition-colors group">
                             <td class="px-6 py-5">
-                                <p class="text-sm font-black text-slate-800">{{ $grade->course_name }}</p>
-                                <p class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">{{ $grade->code }}
-                                </p>
+                                <p class="text-sm font-black text-slate-800 tracking-tight leading-tight mb-1">{{ $grade->course->name }}</p>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[9px] font-bold text-blue-500 uppercase tracking-widest">{{ $grade->course->code }}</span>
+                                    <span class="text-[9px] font-medium text-slate-400">• Prof. {{ $grade->course->teacher->name ?? 'No asignado' }}</span>
+                                </div>
                             </td>
-                            <td class="px-6 py-5">
-                                <p class="text-xs font-bold text-slate-500">{{ $grade->teacher_name }}</p>
+                            <td class="px-3 py-5 text-center">
+                                <span class="text-xs font-bold text-slate-600 font-mono">{{ $grade->eval1 ?? '-' }}</span>
+                            </td>
+                            <td class="px-3 py-5 text-center">
+                                <span class="text-xs font-bold text-slate-600 font-mono">{{ $grade->eval2 ?? '-' }}</span>
+                            </td>
+                            <td class="px-3 py-5 text-center">
+                                <span class="text-xs font-bold text-slate-600 font-mono">{{ $grade->eval3 ?? '-' }}</span>
+                            </td>
+                            <td class="px-3 py-5 text-center">
+                                <span class="text-xs font-bold text-slate-600 font-mono">{{ $grade->eval4 ?? '-' }}</span>
                             </td>
                             <td class="px-6 py-5 text-center">
-                                <span
-                                    class="text-2xl font-black text-blue-700 tracking-tighter">{{ number_format($grade->grade, 1) }}</span>
+                                <span class="text-2xl font-black text-blue-700 tracking-tighter">{{ number_format($grade->grade, 1) }}</span>
                             </td>
                             <td class="px-6 py-5 text-right">
-                                <span
-                                    class="px-3 py-1 text-[9px] font-black uppercase rounded-lg {{ $grade->grade >= 10 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600' }}">
+                                <span class="px-4 py-1 text-[8px] font-black uppercase rounded-full border {{ $grade->grade >= 10 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100' }} shadow-sm">
                                     {{ $grade->grade >= 10 ? 'Aprobado' : 'Reprobado' }}
                                 </span>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-6 py-12 text-center">
-                                <div class="flex flex-col items-center gap-3 opacity-30">
-                                    <span class="material-symbols-outlined text-5xl">description</span>
-                                    <p class="text-sm font-bold uppercase tracking-widest">No hay notas cargadas todavía</p>
+                            <td colspan="7" class="px-6 py-20 text-center">
+                                <div class="flex flex-col items-center gap-4 opacity-30">
+                                    <span class="material-symbols-outlined text-6xl">grading</span>
+                                    <p class="text-sm font-bold uppercase tracking-widest">No hay notas publicadas en este periodo</p>
                                 </div>
                             </td>
                         </tr>

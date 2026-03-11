@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Grade;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class StudentController extends Controller
@@ -14,11 +15,8 @@ class StudentController extends Controller
      */
     public function grades()
     {
-        $user = Auth::user();
-        $grades = DB::table('grades')
-            ->join('courses', 'grades.course_id', '=', 'courses.id')
-            ->where('user_id', $user->id)
-            ->select('courses.name as course_name', 'courses.code', 'courses.teacher_name', 'grades.grade', 'grades.period')
+        $grades = Grade::where('user_id', Auth::id())
+            ->with(['course.teacher'])
             ->get();
 
         return view('student.grades', compact('grades'));

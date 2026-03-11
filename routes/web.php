@@ -70,6 +70,8 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/agenda', [TeacherController::class, 'agenda'])->name('agenda.index');
 
         Route::post('/grades/store', [TeacherController::class, 'storeGrades'])->name('grades.store');
+        Route::get('/grades/export-template', [TeacherController::class, 'exportTemplate'])->name('grades.export');
+        Route::post('/grades/import', [TeacherController::class, 'importGrades'])->name('grades.import');
     });
 
     // ── Rutas de Administrador ──
