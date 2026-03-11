@@ -66,7 +66,10 @@ class TeacherController extends Controller
             ->get()
             ->keyBy('user_id');
 
-        return view('teacher.grading', compact('course', 'students', 'grades'));
+        // Fetch all assigned courses for navigation
+        $allCourses = Course::where('teacher_id', Auth::id())->get();
+
+        return view('teacher.grading', compact('course', 'students', 'grades', 'allCourses'));
     }
 
     /**
@@ -127,17 +130,21 @@ class TeacherController extends Controller
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 
-        $callback = function() use ($students) {
+        $callback = function() use ($students, $course) {
             $file = fopen('php://output', 'w');
-            // Byte Order Mark for Excel UTF-8 compatibility
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
             
-            // Header: ID, Name, Eval1, Eval2, Eval3, Eval4
-            fputcsv($file, ['ID_Estudiante', 'Nombre', 'Corte_1_(0-100)', 'Corte_2_(0-100)', 'Corte_3_(0-100)', 'Corte_4_(0-100)'], ';');
+            // Metadata header
+            fputcsv($file, ['REPORTE ACADÉMICO - LISTADO DE CALIFICACIONES'], ';');
+            fputcsv($file, ['Asignatura:', $course->name, 'Código:', $course->code], ';');
+            fputcsv($file, ['Docente:', Auth::user()->name, 'Periodo:', '2026-I'], ';');
+            fputcsv($file, [], ';'); // Empty row
+
+            // Data Header
+            fputcsv($file, ['ID_ESTUDIANTE', 'NOMBRE_Y_APELLIDO', 'CORTE_1_(0-100)', 'CORTE_2_(0-100)', 'CORTE_3_(0-100)', 'CORTE_4_(0-100)'], ';');
 
             foreach ($students as $student) {
-                // Fetch current grades if they exist
-                $grade = Grade::where('user_id', $student->id)->where('course_id', $student->pivot->course_id)->first();
+                $grade = Grade::where('user_id', $student->id)->where('course_id', $course->id)->first();
                 fputcsv($file, [
                     $student->id,
                     $student->name,
@@ -174,18 +181,22 @@ class TeacherController extends Controller
             rewind($handle);
         }
 
-        // Skip header
-        fgetcsv($handle, 0, ';');
+        // Skip Metadata (5 lines: title, course, teacher, empty, header)
+        for ($i = 0; $i < 5; $i++) {
+            fgetcsv($handle, 0, ';');
+        }
 
         $count = 0;
         while (($data = fgetcsv($handle, 0, ';')) !== FALSE) {
-            if (count($data) < 6) continue;
+            if (count($data) < 2) continue; // Skip empty rows
 
             $studentId = $data[0];
-            $e1 = str_replace(',', '.', $data[2]);
-            $e2 = str_replace(',', '.', $data[3]);
-            $e3 = str_replace(',', '.', $data[4]);
-            $e4 = str_replace(',', '.', $data[5]);
+            if (!is_numeric($studentId)) continue; // Skip non-numeric IDs (safety)
+
+            $e1 = str_replace(',', '.', $data[2] ?? 0);
+            $e2 = str_replace(',', '.', $data[3] ?? 0);
+            $e3 = str_replace(',', '.', $data[4] ?? 0);
+            $e4 = str_replace(',', '.', $data[5] ?? 0);
 
             // Ensure the student is actually enrolled in this course
             if ($course->students()->where('users.id', $studentId)->exists()) {
