@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Course;
+use App\Models\Grade;
+use App\Models\User;
 
 class TeacherController extends Controller
 {
@@ -13,9 +15,20 @@ class TeacherController extends Controller
      */
     public function dashboard()
     {
-        $totalStudents = DB::table('users')->where('role', 'student')->count();
-        $sections = 4; // Mock
-        return view('teacher.dashboard', compact('totalStudents', 'sections'));
+        $teacherId = Auth::id();
+        
+        $courses = Course::where('teacher_id', $teacherId)->withCount('students')->get();
+        $totalStudents = $courses->sum('students_count');
+        $sections = $courses->count();
+        
+        // Find recent grades updated by this teacher
+        $recentGrades = Grade::whereIn('course_id', $courses->pluck('id'))
+            ->with(['student', 'course'])
+            ->latest('updated_at')
+            ->take(5)
+            ->get();
+
+        return view('teacher.dashboard', compact('totalStudents', 'sections', 'courses', 'recentGrades'));
     }
 
     /**
@@ -23,23 +36,36 @@ class TeacherController extends Controller
      */
     public function courses()
     {
-        $courses = DB::table('courses')->get(); // In reality, filter by teacher
+        $courses = Course::where('teacher_id', Auth::id())
+            ->withCount('students')
+            ->latest()
+            ->get();
+
         return view('teacher.courses', compact('courses'));
     }
 
     /**
      * View grading interface for specific sections.
      */
-    public function grading()
+    public function grading(Request $request)
     {
-        $students = DB::table('users')->where('role', 'student')->get();
-        // Optimizamos cargando las notas de una vez (Simulando Eager Loading)
-        $grades = DB::table('grades')
-            ->where('course_id', 1)
+        $courseId = $request->query('course_id');
+        
+        // Ensure the teacher owns this course
+        $course = Course::where('teacher_id', Auth::id());
+        
+        if ($courseId) {
+            $course = $course->where('id', $courseId);
+        }
+        
+        $course = $course->firstOrFail();
+
+        $students = $course->students()->get();
+        $grades = Grade::where('course_id', $course->id)
             ->whereIn('user_id', $students->pluck('id'))
             ->pluck('grade', 'user_id');
 
-        return view('teacher.grading', compact('students', 'grades'));
+        return view('teacher.grading', compact('course', 'students', 'grades'));
     }
 
     /**
@@ -56,17 +82,26 @@ class TeacherController extends Controller
     public function storeGrades(Request $request)
     {
         $request->validate([
-            'course_id' => 'required',
+            'course_id' => 'required|exists:courses,id',
             'grades' => 'required|array',
+            'period' => 'required|string'
         ]);
 
-        foreach ($request->grades as $studentId => $grade) {
-            DB::table('grades')->updateOrInsert(
-                ['user_id' => $studentId, 'course_id' => $request->course_id],
-                ['grade' => $grade, 'period' => '2026-I', 'updated_at' => now()]
-            );
+        // Authorization: Check if teacher owns the course
+        $course = Course::where('id', $request->course_id)
+            ->where('teacher_id', Auth::id())
+            ->firstOrFail();
+
+        foreach ($request->grades as $studentId => $gradeValue) {
+            // Only save if a value is provided
+            if ($gradeValue !== null && $gradeValue !== '') {
+                Grade::updateOrCreate(
+                    ['user_id' => $studentId, 'course_id' => $course->id],
+                    ['grade' => $gradeValue, 'period' => $request->period]
+                );
+            }
         }
 
-        return back()->with('success', 'Calificaciones actualizadas correctamente.');
+        return back()->with('success', 'Calificaciones de "' . $course->name . '" actualizadas correctamente.');
     }
 }

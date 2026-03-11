@@ -8,23 +8,14 @@ use Illuminate\Support\Facades\Auth;
 
 class PostController extends Controller
 {
-    /**
-     * Solo Admin y Manager pueden acceder a este controlador.
-     */
-    private function authorizeRole()
-    {
-        $role = Auth::user()->role ?? '';
-        if (!in_array($role, ['admin', 'manager'])) {
-            abort(403, 'No tienes permiso para realizar esta acción.');
-        }
-    }
+    // Authorization is now handled by the 'role' middleware in web.php
+    // for all methods in this controller.
 
     /**
      * Guardar un nuevo post (noticia o evento).
      */
     public function store(Request $request)
     {
-        $this->authorizeRole();
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -49,6 +40,7 @@ class PostController extends Controller
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('posts', 'public');
+            // Use relative URL to avoid APP_URL localhost/127.0.0.1 mismatch issues
             $finalData['image_url'] = '/storage/' . $path;
         }
 
@@ -69,7 +61,6 @@ class PostController extends Controller
      */
     public function destroy(Post $post)
     {
-        $this->authorizeRole();
 
         $user = Auth::user();
 
@@ -88,7 +79,6 @@ class PostController extends Controller
      */
     public function toggle(Post $post)
     {
-        $this->authorizeRole();
 
         $post->update(['is_published' => !$post->is_published]);
 
