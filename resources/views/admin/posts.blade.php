@@ -26,7 +26,7 @@
                                             <div
                                                 class="size-14 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-200 group-hover:border-brand-200 transition-colors">
                                                 @if($post->image_url)
-                                                    <img src="{{ $post->image_url }}" class="w-full h-full object-cover">
+                                                    <img src="{{ asset($post->image_url) }}" class="w-full h-full object-cover">
                                                 @else
                                                     <div class="w-full h-full flex items-center justify-center text-gray-400">
                                                         <span class="material-symbols-outlined text-2xl">image</span>
@@ -60,7 +60,7 @@
                                                     {{ $post->is_published ? 'Publicado' : 'Borrador' }}
                                                 </button>
                                             </form>
-                                            <form action="{{ route('posts.destroy', $post->id) }}" method="POST" x-data="{ confirming: false }" @submit.prevent="confirming = true">
+                                            <form id="delete-post-{{ $post->id }}" action="{{ route('posts.destroy', $post->id) }}" method="POST" x-data="{ confirming: false }" @submit.prevent="confirming = true">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit"
@@ -83,7 +83,7 @@
                                                                     <button type="button" @click="confirming = false" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors text-sm">
                                                                         Cancelar
                                                                     </button>
-                                                                    <button type="button" @click="$el.closest('form').submit()" class="flex-1 px-4 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 shadow-md shadow-red-600/20 transition-all text-sm">
+                                                                    <button type="button" @click="document.getElementById('delete-post-{{ $post->id }}').submit()" class="flex-1 px-4 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 shadow-md shadow-red-600/20 transition-all text-sm">
                                                                         Eliminar
                                                                     </button>
                                                                 </div>
