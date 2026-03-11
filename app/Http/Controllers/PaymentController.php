@@ -156,12 +156,15 @@ class PaymentController extends Controller
     public function updateRateFromApi()
     {
         try {
-            $response = \Illuminate\Support\Facades\Http::withHeaders([
+            $response = \Illuminate\Support\Facades\Http::withoutVerifying()->withHeaders([
                 'x-dolarvzla-key' => '2320db1bc8b81274ea5552c7d0158512b39cecd259f05eb477a71ea6231d26d1',
             ])->get('https://api.dolarvzla.com/public/bcv/exchange-rate');
 
-            if ($response->successful() && isset($response['current']['usd'])) {
-                $newRate = (float) $response['current']['usd'];
+            // Optionally, handle their /list endpoint if that's what we get
+            $data = $response->json();
+            
+            if ($response->successful() && isset($data['current']['usd'])) {
+                $newRate = (float) $data['current']['usd'];
 
                 DB::table('exchange_rates')->insert([
                     'rate' => $newRate,
@@ -173,10 +176,10 @@ class PaymentController extends Controller
                 return response()->json(['success' => true, 'new_rate' => $newRate]);
             }
             
-            return response()->json(['success' => false, 'message' => 'Estructura o respuesta de API no válida.']);
+            return response()->json(['success' => false, 'message' => 'Respuesta no válida del BCV: ' . substr($response->body(), 0, 100)]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'No se pudo conectar con la API del BCV.']);
+            return response()->json(['success' => false, 'message' => 'Error API: ' . $e->getMessage()]);
         }
     }
     /**
