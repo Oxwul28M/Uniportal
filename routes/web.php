@@ -90,10 +90,12 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::post('/debts/assign', [AdminController::class, 'assignDebts'])->name('debts.assign');
     });
 
-    // ── Rutas de Posts (General) ──
-    Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
-    Route::delete('/posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
-    Route::patch('/posts/{post}/toggle', [PostController::class, 'toggle'])->name('posts.toggle');
+    // ── Rutas de Posts (Solo Admin y Manager) ──
+    Route::middleware(['role:admin,manager'])->group(function () {
+        Route::post('/posts', [PostController::class, 'store'])->name('posts.store');
+        Route::delete('/posts/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
+        Route::patch('/posts/{post}/toggle', [PostController::class, 'toggle'])->name('posts.toggle');
+    });
 
     Route::get('/api/bcv/update', [PaymentController::class, 'updateRateFromApi'])->name('api.bcv.update');
 

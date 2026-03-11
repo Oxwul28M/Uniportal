@@ -14,7 +14,7 @@ class RoleMiddleware
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next, string $roles): Response
+    public function handle(Request $request, Closure $next, ...$roles): Response
     {
         if (!Auth::check()) {
             return redirect()->route('login');
@@ -23,12 +23,16 @@ class RoleMiddleware
         $user = Auth::user();
         $userRole = strtolower(trim($user->role));
         
-        // Split by comma or pipe, and trim each role
-        $allowedRoles = array_map('trim', explode(',', str_replace('|', ',', strtolower($roles))));
-
-        // Admin always has access to everything for management purposes
+        // Admin always has access to everything
         if ($userRole === 'admin') {
             return $next($request);
+        }
+
+        // Create a flat array of all allowed roles, supporting comma/pipe within strings too
+        $allowedRoles = [];
+        foreach ($roles as $roleGroup) {
+            $split = array_map('trim', explode(',', str_replace('|', ',', strtolower($roleGroup))));
+            $allowedRoles = array_merge($allowedRoles, $split);
         }
 
         if (!in_array($userRole, $allowedRoles)) {
