@@ -77,11 +77,11 @@
                     if(data.success) {
                         window.location.reload();
                     } else {
-                        alert(data.message || 'Error al actualizar la tasa del BCV.');
+                        this.$dispatch('notify', {message: data.message || 'Error al actualizar la tasa del BCV.', type: 'error'});
                     }
                 } catch(e) { 
                     console.error(e); 
-                    alert('No se pudo conectar con el servidor.');
+                    this.$dispatch('notify', {message: 'No se pudo conectar con la API de BDV.', type: 'error'});
                 }
                 this.fetchingRate = false;
             }

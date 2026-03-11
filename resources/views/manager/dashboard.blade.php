@@ -1,31 +1,28 @@
 <x-dashboard-layout>
     <!-- Manager Banner -->
     <div x-data="{
-        showRateModal: false,
-        savingRate: false,
-        newRate: '{{ $latestRate->rate ?? 61.20 }}',
-        async updateRate() {
-            if(!this.newRate) return;
-            this.savingRate = true;
+        fetchingRate: false,
+        async fetchBcvRate() {
+            if(this.fetchingRate) return;
+            this.fetchingRate = true;
             try {
-                const response = await fetch('{{ route('manager.rate.update') }}', {
-                    method: 'POST',
+                const response = await fetch('{{ route('api.bcv.update') }}', {
+                    method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
                         'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ rate: this.newRate })
+                    }
                 });
                 const data = await response.json();
                 if(data.success) {
-                    this.showRateModal = false;
                     window.location.reload();
                 } else {
-                    this.$dispatch('notify', {message: 'Error al actualizar la tasa.', type: 'error'});
+                    this.$dispatch('notify', {message: data.message || 'Error al actualizar la tasa del BCV.', type: 'error'});
                 }
-            } catch(e) { console.error(e); }
-            this.savingRate = false;
+            } catch(e) { 
+                console.error(e); 
+                this.$dispatch('notify', {message: 'No se pudo conectar con la API de BDV.', type: 'error'});
+            }
+            this.fetchingRate = false;
         }
     }">
     <div class="bg-white rounded-2xl p-10 mb-8 relative overflow-hidden shadow-sm border border-gray-200">
@@ -56,8 +53,8 @@
                 <div class="bg-slate-50 p-6 rounded-2xl border border-gray-200 text-center min-w-[220px]">
                     <div class="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
                         <p class="text-xs text-brand-700 font-bold uppercase tracking-widest">Tasa BCV Oficial</p>
-                        <button @click="showRateModal = true" class="text-brand-600 hover:text-brand-800 transition-colors p-1 bg-brand-50 rounded-lg" title="Actualizar Tasa">
-                            <span class="material-symbols-outlined text-sm block">edit</span>
+                        <button @click="fetchBcvRate()" :disabled="fetchingRate" class="text-brand-600 hover:text-brand-800 transition-colors p-1 bg-brand-50 rounded-lg disabled:opacity-50" title="Sincronizar BCV">
+                            <span class="material-symbols-outlined text-sm block" :class="{'animate-spin': fetchingRate}">sync</span>
                         </button>
                     </div>
                     <p class="text-3xl font-bold tracking-tighter text-gray-900">
@@ -71,41 +68,7 @@
         </div>
     </div>
 
-    <!-- Update Rate Modal -->
-    <template x-teleport="body">
-        <div x-show="showRateModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div @click="showRateModal = false" class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity"></div>
-            <div class="bg-white relative w-full max-w-sm rounded-3xl shadow-2xl p-8"
-                x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
-                x-transition:enter-end="opacity-100 scale-100">
 
-                <button @click="showRateModal = false"
-                    class="absolute top-6 right-6 text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-xl transition-colors">
-                    <span class="material-symbols-outlined text-sm">close</span>
-                </button>
-
-                <div class="mb-6">
-                    <h3 class="text-xl font-bold text-gray-900">Actualizar Tasa BCV</h3>
-                    <p class="text-sm text-gray-500 mt-1">Ingresa el nuevo valor oficial.</p>
-                </div>
-
-                <form @submit.prevent="updateRate" class="space-y-4">
-                    <div class="space-y-1.5">
-                        <label class="text-sm font-semibold text-gray-700">Tasa en Bolívares (Bs)</label>
-                        <input type="number" step="0.01" min="0.01" x-model="newRate" required
-                            class="w-full bg-gray-50 text-gray-900 border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-800/20 focus:border-brand-800 transition-all shadow-inner text-center font-bold text-xl">
-                    </div>
-                    <button type="submit" :disabled="savingRate"
-                        class="w-full bg-gradient-to-r from-brand-800 to-blue-600 hover:from-brand-900 hover:to-blue-700 text-white py-3.5 rounded-xl text-sm font-semibold transition-all mt-4 flex items-center justify-center gap-3 shadow-md hover:-translate-y-0.5">
-                        <template x-if="savingRate">
-                            <span class="animate-spin material-symbols-outlined text-sm">refresh</span>
-                        </template>
-                        <span x-text="savingRate ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'"></span>
-                    </button>
-                </form>
-            </div>
-        </div>
-    </template>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
         <!-- Pending Payments Section -->
