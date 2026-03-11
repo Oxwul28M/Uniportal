@@ -1,0 +1,42 @@
+[
+    {
+        "email": "admin@uni.com",
+        "role": "admin",
+        "status": "active"
+    },
+    {
+        "email": "manager@uni.com",
+        "role": "manager",
+        "status": "active"
+    },
+    {
+        "email": "teacher@uni.com",
+        "role": "teacher",
+        "status": "active"
+    },
+    {
+        "email": "student@uni.com",
+        "role": "student",
+        "status": "active"
+    },
+    {
+        "email": "luiscarlostoste13@gmail.com",
+        "role": "student",
+        "status": "active"
+    },
+    {
+        "email": "luiscarlostoste12@gmail.com",
+        "role": "student",
+        "status": "active"
+    },
+    {
+        "email": "luistoste12@gmail.com",
+        "role": "student",
+        "status": "active"
+    },
+    {
+        "email": "luistoste13@gmail.com",
+        "role": "student",
+        "status": "active"
+    }
+]
