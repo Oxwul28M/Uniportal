@@ -60,14 +60,37 @@
                                                     {{ $post->is_published ? 'Publicado' : 'Borrador' }}
                                                 </button>
                                             </form>
-                                            <form action="{{ route('posts.destroy', $post->id) }}" method="POST"
-                                                onsubmit="return confirm('¿Eliminar esta publicación?')">
+                                            <form action="{{ route('posts.destroy', $post->id) }}" method="POST" x-data="{ confirming: false }" @submit.prevent="confirming = true">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit"
                                                     class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                                                     <span class="material-symbols-outlined text-lg">delete</span>
                                                 </button>
+
+                                                <!-- Delete Confirmation Modal -->
+                                                <template x-teleport="body">
+                                                    <div x-show="confirming" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm" x-cloak>
+                                                        <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl relative" @click.away="confirming = false">
+                                                            <div class="flex flex-col items-center justify-center text-center">
+                                                                <div class="w-16 h-16 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-4">
+                                                                    <span class="material-symbols-outlined text-3xl">delete_forever</span>
+                                                                </div>
+                                                                <h4 class="text-xl font-bold text-gray-900 mb-2">Eliminar Publicación</h4>
+                                                                <p class="text-sm text-gray-500 mb-8">¿Estás seguro de que deseas eliminar permanentemente "{{ $post->title }}"? Esta acción no se puede deshacer.</p>
+                                                                
+                                                                <div class="flex w-full gap-3">
+                                                                    <button type="button" @click="confirming = false" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors text-sm">
+                                                                        Cancelar
+                                                                    </button>
+                                                                    <button type="button" @click="$el.closest('form').submit()" class="flex-1 px-4 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 shadow-md shadow-red-600/20 transition-all text-sm">
+                                                                        Eliminar
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
                                             </form>
                                         </div>
                                     </div>
