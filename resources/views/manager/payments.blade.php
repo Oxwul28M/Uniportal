@@ -1,3 +1,4 @@
+<x-dashboard-layout>
     <div class="flex items-center justify-between mb-8">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Validación de Pagos</h1>
