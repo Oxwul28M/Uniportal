@@ -100,19 +100,24 @@ class ManagerController extends Controller
 
         $callback = function () use ($payments, $columns) {
             $file = fopen('php://output', 'w');
+            
             // Add BOM for Excel UTF-8 support
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($file, $columns);
+            
+            // Format headers explicitly with ; to fix Spanish Excel
+            fputcsv($file, $columns, ';');
 
             foreach ($payments as $payment) {
-                fputcsv($file, [
+                // Ensure numbers use comma for decimals if needed, or leave as dot
+                $row = [
                     $payment->created_at,
                     $payment->reference,
                     $payment->student,
                     $payment->concept,
-                    $payment->amount_bs,
-                    $payment->amount_usd,
-                ]);
+                    number_format($payment->amount_bs, 2, ',', ''),
+                    number_format($payment->amount_usd, 2, ',', ''),
+                ];
+                fputcsv($file, $row, ';');
             }
 
             fclose($file);
