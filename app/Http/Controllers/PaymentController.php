@@ -151,21 +151,33 @@ class PaymentController extends Controller
     }
 
     /**
-     * Simulated API Update for BCV (Could be called by a cron job)
+     * Real API Update for BCV Exchange Rate
      */
     public function updateRateFromApi()
     {
-        // In a real scenario, use Http::get('bcv-api-url')
-        $newRate = 61.00 + (rand(0, 300) / 100);
+        try {
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'x-dolarvzla-key' => '2320db1bc8b81274ea5552c7d0158512b39cecd259f05eb477a71ea6231d26d1',
+            ])->get('https://api.dolarvzla.com/public/bcv/exchange-rate');
 
-        DB::table('exchange_rates')->insert([
-            'rate' => $newRate,
-            'fetched_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+            if ($response->successful() && isset($response['current']['usd'])) {
+                $newRate = (float) $response['current']['usd'];
 
-        return response()->json(['success' => true, 'new_rate' => $newRate]);
+                DB::table('exchange_rates')->insert([
+                    'rate' => $newRate,
+                    'fetched_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                return response()->json(['success' => true, 'new_rate' => $newRate]);
+            }
+            
+            return response()->json(['success' => false, 'message' => 'Estructura o respuesta de API no válida.']);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'No se pudo conectar con la API del BCV.']);
+        }
     }
     /**
      * Store new BCV rate from manager
