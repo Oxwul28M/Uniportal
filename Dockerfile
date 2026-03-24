@@ -45,5 +45,8 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 # Cambiar el puerto en el que escucha Apache al expuesto por Render
 RUN sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
 
+# Antes de la última línea (CMD o ENTRYPOINT)
+RUN php artisan migrate --force
+
 # Comando de inicio
 CMD ["apache2-foreground"]
