@@ -12,6 +12,8 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\AiChatController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Artisan;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -123,6 +125,14 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
     // Chatbot IA (Student)
     Route::middleware(['role:student'])->post('/ai/chat', [AiChatController::class, 'chat'])->name('ai.chat');
 
+});
+Route::get('/migrar-base-de-datos', function () {
+    try {
+        Artisan::call('migrate', ['--force' => true]);
+        return "¡Tablas creadas con éxito en Supabase Virginia!";
+    } catch (\Exception $e) {
+        return "Error al migrar: " . $e->getMessage();
+    }
 });
 
 // Logout vía GET
