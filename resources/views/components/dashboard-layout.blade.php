@@ -56,20 +56,23 @@
         <header class="sticky top-0 z-50 w-full border-b border-gray-200 bg-white px-6 md:px-10 lg:px-20 py-3 shadow-sm">
             <div class="flex items-center justify-between max-w-7xl mx-auto">
                 <div class="flex items-center gap-10">
-                    <div class="flex items-center gap-3">
+                    <a href="{{ url('/') }}" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
                         <div class="size-9 bg-brand-800 flex items-center justify-center rounded-lg text-white shadow-sm">
                             <i class="fa-solid fa-graduation-cap"></i>
                         </div>
                         <h2 class="text-gray-900 text-lg font-bold leading-tight">UniPortal @if(Auth::user()->role === 'admin') Admin @endif</h2>
-                    </div>
+                    </a>
                     <nav class="hidden md:flex items-center gap-8">
                         @if(Auth::user()->role === 'admin')
                             <a href="{{ route('admin.dashboard') }}" class="text-sm font-semibold py-1 transition-colors {{ request()->routeIs('admin.dashboard') ? 'text-brand-800 border-b-2 border-brand-800' : 'text-gray-500 hover:text-brand-800 font-medium' }}">Dashboard</a>
                             <a href="{{ route('admin.requests.index') }}" class="text-sm font-semibold py-1 transition-colors {{ request()->routeIs('admin.requests.*') ? 'text-brand-800 border-b-2 border-brand-800' : 'text-gray-500 hover:text-brand-800 font-medium' }}">Solicitudes</a>
                             <a href="{{ route('admin.users.index') }}" class="text-sm font-semibold py-1 transition-colors {{ request()->routeIs('admin.users.*') ? 'text-brand-800 border-b-2 border-brand-800' : 'text-gray-500 hover:text-brand-800 font-medium' }}">Usuarios</a>
                             <a href="{{ route('admin.posts.index') }}" class="text-sm font-semibold py-1 transition-colors {{ request()->routeIs('admin.posts.*') ? 'text-brand-800 border-b-2 border-brand-800' : 'text-gray-500 hover:text-brand-800 font-medium' }}">Avisos</a>
+                            <a href="{{ route('admin.reports.index') }}" class="text-sm font-semibold py-1 transition-colors {{ request()->routeIs('admin.reports.*') ? 'text-brand-800 border-b-2 border-brand-800' : 'text-gray-500 hover:text-brand-800 font-medium' }}">Reportes</a>
+
                         @elseif(Auth::user()->role === 'manager')
                             <a href="{{ route('manager.dashboard') }}" class="text-sm font-semibold py-1 transition-colors {{ request()->routeIs('manager.dashboard') ? 'text-brand-800 border-b-2 border-brand-800' : 'text-gray-500 hover:text-brand-800 font-medium' }}">Dashboard</a>
+                            <a href="{{ route('manager.requests.index') }}" class="text-sm font-semibold py-1 transition-colors {{ request()->routeIs('manager.requests.*') ? 'text-brand-800 border-b-2 border-brand-800' : 'text-gray-500 hover:text-brand-800 font-medium' }}">Solicitudes</a>
                             <a href="{{ route('manager.users.index') }}" class="text-sm font-semibold py-1 transition-colors {{ request()->routeIs('manager.users.*') ? 'text-brand-800 border-b-2 border-brand-800' : 'text-gray-500 hover:text-brand-800 font-medium' }}">Usuarios</a>
                             <a href="{{ route('manager.payments.index') }}" class="text-sm font-semibold py-1 transition-colors {{ request()->routeIs('manager.payments.*') ? 'text-brand-800 border-b-2 border-brand-800' : 'text-gray-500 hover:text-brand-800 font-medium' }}">Pagos</a>
                             <a href="{{ route('manager.reports.index') }}" class="text-sm font-semibold py-1 transition-colors {{ request()->routeIs('manager.reports.*') ? 'text-brand-800 border-b-2 border-brand-800' : 'text-gray-500 hover:text-brand-800 font-medium' }}">Reportes</a>
@@ -90,10 +93,11 @@
                     </nav>
                 </div>
                 <div class="flex items-center gap-4">
-                    <div class="hidden sm:flex items-center bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:border-brand-800/50 focus-within:ring-2 focus-within:ring-brand-800/10 transition-all">
+                <div class="flex items-center gap-4">
+                    <form action="{{ route('search') }}" method="GET" class="hidden sm:flex items-center bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:border-brand-800/50 focus-within:ring-2 focus-within:ring-brand-800/10 transition-all">
                         <span class="material-symbols-outlined text-gray-400 text-sm">search</span>
-                        <input class="bg-transparent border-none focus:ring-0 text-sm placeholder:text-gray-400 w-48" placeholder="Buscar..." type="text"/>
-                    </div>
+                        <input name="q" value="{{ request('q') }}" class="bg-transparent border-none focus:ring-0 text-sm placeholder:text-gray-400 w-48" placeholder="Buscar..." type="text"/>
+                    </form>
                     
                     <!-- Notifications Dropdown -->
                     <div class="relative" x-data="{ open: false }">
@@ -241,6 +245,13 @@
             <p>© {{ date('Y') }} RegPortal Global Education Systems. Todos los derechos reservados.</p>
         </footer>
     </div>
+
+    {{-- ── AI Chatbot (Student only) ── --}}
+    @auth
+        @if(Auth::user()->role === 'student')
+            <x-ai-chatbot />
+        @endif
+    @endauth
 </body>
 
 </html>

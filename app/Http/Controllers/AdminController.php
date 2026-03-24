@@ -58,9 +58,9 @@ class AdminController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%$search%")
-                  ->orWhere('email', 'like', "%$search%");
+                    ->orWhere('email', 'like', "%$search%");
             });
         }
 
@@ -168,7 +168,7 @@ class AdminController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
@@ -219,28 +219,116 @@ class AdminController extends Controller
     }
 
     /**
-     * Delete user.
+     * Toggle user status between active and suspended.
      */
-    public function destroy($id)
+    public function toggleStatus($id)
     {
         $user = User::findOrFail($id);
-        
-        // Prevent self-deletion
+
         if ($user->id === Auth::id()) {
-            return back()->with('error', 'No puedes eliminar tu propia cuenta.');
+            return back()->with('error', 'No puedes cambiar tu propio estatus.');
         }
 
-        $user->delete();
+        $user->status = ($user->status === 'active') ? 'suspended' : 'active';
+        $user->save();
 
         if (request()->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Usuario eliminado permanentemente.',
+                'message' => "Estado de {$user->name} cambiado a {$user->status}.",
+                'user' => $user
+            ]);
+        }
+
+        return back()->with('success', "Estado de {$user->name} actualizado correctamente.");
+    }
+
+    /**
+     * Soft-block user (Replaces permanent delete).
+     */
+    public function destroy($id)
+    {
+        $user = User::findOrFail($id);
+
+        // Prevent self-suspension
+        if ($user->id === Auth::id()) {
+            return back()->with('error', 'No puedes suspender tu propia cuenta.');
+        }
+
+        $user->status = 'suspended';
+        $user->save();
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Usuario {$user->name} suspendido correctamente (Los datos se conservan).",
+                'user' => $user,
                 'user_id' => $id
             ]);
         }
 
-        return back()->with('success', 'Usuario eliminado permanentemente del sistema.');
+        return back()->with('success', "Usuario {$user->name} suspendido correctamente.");
+    }
+
+    /**
+     * View financial reports / Approved Payments Log.
+     */
+    public function reports()
+    {
+        $payments = DB::table('payments')
+            ->join('users', 'payments.user_id', '=', 'users.id')
+            ->leftJoin('fees', 'payments.fee_id', '=', 'fees.id')
+            ->select('payments.*', 'users.name as student_name', 'fees.name as concept_name')
+            ->where('payments.status', 'approved')
+            ->orderBy('payments.created_at', 'desc')
+            ->paginate(20);
+
+        // Can share the exact same blade view
+        return view('manager.reports', compact('payments'));
+    }
+
+    /**
+     * Export earnings report to CSV.
+     */
+    public function export()
+    {
+        $payments = DB::table('payments')
+            ->join('users', 'payments.user_id', '=', 'users.id')
+            ->leftJoin('fees', 'payments.fee_id', '=', 'fees.id')
+            ->select('payments.reference', 'users.name as student', 'fees.name as concept', 'payments.amount_bs', 'payments.amount_usd', 'payments.created_at')
+            ->where('payments.status', 'approved')
+            ->get();
+
+        $fileName = 'recaudacion_uniportal_' . now()->format('Y-m-d') . '.csv';
+        $headers = [
+            "Content-type" => "text/csv; charset=UTF-8",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ];
+
+        $columns = ['Fecha', 'Referencia', 'Estudiante', 'Concepto', 'Monto Bs', 'Monto USD'];
+
+        $callback = function () use ($payments, $columns) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($file, $columns, ';');
+            foreach ($payments as $payment) {
+                $row = [
+                    $payment->created_at,
+                    $payment->reference,
+                    $payment->student,
+                    $payment->concept ?? 'Pago Genérico',
+                    number_format($payment->amount_bs, 2, ',', ''),
+                    number_format($payment->amount_usd, 2, ',', ''),
+                ];
+                fputcsv($file, $row, ';');
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     /**
@@ -270,7 +358,7 @@ class AdminController extends Controller
         }
 
         // Chunk inserts to prevent massive memory usage if thousands of students
-        foreach(array_chunk($debtsToInsert, 500) as $chunk) {
+        foreach (array_chunk($debtsToInsert, 500) as $chunk) {
             DB::table('debts')->insert($chunk);
         }
 

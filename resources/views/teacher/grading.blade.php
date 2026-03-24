@@ -9,7 +9,7 @@
                 </div>
                 <div class="p-4 space-y-2">
                     @foreach($allCourses as $c)
-                        <a href="{{ route('teacher.grading', ['course_id' => $c->id]) }}" 
+                        <a href="{{ route('teacher.grading.index', ['course_id' => $c->id]) }}" 
                            class="flex items-center gap-4 p-4 rounded-2xl transition-all group {{ $course->id == $c->id ? 'bg-brand-800 text-white shadow-lg shadow-brand-800/20' : 'hover:bg-slate-50 text-slate-600' }}">
                             <div class="size-10 rounded-xl flex items-center justify-center font-black text-[10px] {{ $course->id == $c->id ? 'bg-white/20' : 'bg-slate-100 group-hover:bg-white transition-colors' }}">
                                 {{ substr($c->name, 0, 2) }}

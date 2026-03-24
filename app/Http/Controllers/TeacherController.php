@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Course;
 use App\Models\Grade;
 use App\Models\User;
+use App\Models\AgendaItem;
 
 class TeacherController extends Controller
 {
@@ -77,7 +78,78 @@ class TeacherController extends Controller
      */
     public function agenda()
     {
-        return view('teacher.agenda');
+        $teacherId = Auth::id();
+        $items = AgendaItem::where('teacher_id', $teacherId)
+            ->with('courses')
+            ->orderBy('event_date', 'asc')
+            ->get();
+        
+        $courses = Course::where('teacher_id', $teacherId)->get();
+
+        return view('teacher.agenda', compact('items', 'courses'));
+    }
+
+    public function storeAgenda(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'event_date' => 'required|date',
+            'type' => 'required|string',
+            'course_ids' => 'nullable|array',
+            'course_ids.*' => 'exists:courses,id'
+        ]);
+
+        $item = AgendaItem::create([
+            'teacher_id' => Auth::id(),
+            'title' => $request->title,
+            'description' => $request->description,
+            'event_date' => $request->event_date,
+            'type' => $request->type
+        ]);
+
+        if ($request->has('course_ids')) {
+            $item->courses()->sync($request->course_ids);
+        }
+
+        return redirect()->back()->with('success', 'Evento añadido a tu agenda.');
+    }
+
+    public function updateAgenda(Request $request, $id)
+    {
+        $item = AgendaItem::where('id', $id)->where('teacher_id', Auth::id())->firstOrFail();
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'event_date' => 'required|date',
+            'type' => 'required|string',
+            'course_ids' => 'nullable|array',
+            'course_ids.*' => 'exists:courses,id'
+        ]);
+
+        $item->update([
+            'title' => $request->title,
+            'description' => $request->description,
+            'event_date' => $request->event_date,
+            'type' => $request->type
+        ]);
+
+        if ($request->has('course_ids')) {
+            $item->courses()->sync($request->course_ids);
+        } else {
+            $item->courses()->detach();
+        }
+
+        return redirect()->back()->with('success', 'Evento actualizado.');
+    }
+
+    public function destroyAgenda($id)
+    {
+        $item = AgendaItem::where('id', $id)->where('teacher_id', Auth::id())->firstOrFail();
+        $item->delete();
+
+        return redirect()->back()->with('success', 'Evento eliminado.');
     }
 
     /**

@@ -38,10 +38,24 @@ class PaymentController extends Controller
             ->where('debts.status', 'pending')
             ->get();
 
-        $exchangeRate = DB::table('exchange_rates')->latest('fetched_at')->first();
+        // Get historical rates mapping: Date => Rate (for the calculator)
+        $historicalRates = DB::table('exchange_rates')
+            ->select(DB::raw('DATE(fetched_at) as date'), 'rate')
+            ->orderBy('fetched_at', 'desc')
+            ->get()
+            ->keyBy('date')
+            ->map(fn($item) => $item->rate)
+            ->toArray();
 
-        // Pass debts instead of all fees
-        return view('student.payments.create', ['fees' => $debts, 'exchangeRate' => $exchangeRate]);
+        // fallback to latest
+        $latestRateRec = DB::table('exchange_rates')->latest('fetched_at')->first();
+        $latestRate = $latestRateRec ? $latestRateRec->rate : 1;
+
+        return view('student.payments.create', [
+            'fees' => $debts,
+            'historicalRates' => $historicalRates,
+            'latestRate' => $latestRate
+        ]);
     }
 
     /**
@@ -50,10 +64,12 @@ class PaymentController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'reference' => 'required|unique:payments',
-            'amount_bs' => 'required|numeric|min:0',
-            // Notice: fee_id from form is now actually debt_id
-            'fee_id' => 'required|exists:debts,id', 
+            'reference' => 'required|digits:8|unique:payments',
+            'amount_bs' => 'required|numeric|min:0.01',
+            'fee_id' => 'required|exists:debts,id',
+            'payment_date' => 'required|date|before_or_equal:today|after_or_equal:-1 month',
+            'receipt' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+            'observations' => 'nullable|string|max:1000'
         ]);
 
         $debt = DB::table('debts')->where('id', $request->fee_id)->first();
@@ -61,15 +77,23 @@ class PaymentController extends Controller
             return back()->with('error', 'Deuda inválida o ya procesada.');
         }
 
-        $exchangeRate = DB::table('exchange_rates')->latest('fetched_at')->first();
-        $rate = $exchangeRate ? $exchangeRate->rate : 1;
+        // Get the historical rate for the selected date
+        $historicalRate = DB::table('exchange_rates')
+            ->whereDate('fetched_at', '<=', $request->payment_date)
+            ->orderBy('fetched_at', 'desc')
+            ->value('rate');
 
+        $rate = $historicalRate ?? 1;
+
+        // Calculate equivalence automatically based on historic rate
         $amountUsd = round($request->amount_bs / $rate, 2);
 
         // Validation: If amount doesn't cover exact debt
         if ($amountUsd < $debt->amount_usd) {
-            return back()->withInput()->with('error_monto', 'MONTO INSUFICIENTE');
+            return back()->withInput()->with('error_monto', 'MONTO INSUFICIENTE (Enviaste REF ' . $amountUsd . ' pero la deuda es REF ' . $debt->amount_usd . ')');
         }
+
+        $receiptPath = $request->file('receipt')->store('receipts', 'public');
 
         DB::beginTransaction();
         try {
@@ -81,11 +105,14 @@ class PaymentController extends Controller
                 'amount_bs' => $request->amount_bs,
                 'amount_usd' => $amountUsd,
                 'status' => 'pending',
+                'receipt_path' => $receiptPath,
+                'observations' => $request->observations,
+                'payment_date' => $request->payment_date,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
 
-            // Set Debt status to in_review so it doesn't show up again while pending
+            // Set Debt status to in_review
             DB::table('debts')->where('id', $debt->id)->update(['status' => 'in_review', 'updated_at' => now()]);
 
             DB::commit();
@@ -104,10 +131,10 @@ class PaymentController extends Controller
         DB::beginTransaction();
         try {
             $payment = DB::table('payments')->where('id', $id)->first();
-            
+
             // Mark Payment as Approved
             DB::table('payments')->where('id', $id)->update(['status' => 'approved', 'updated_at' => now()]);
-            
+
             // Mark corresponding Debt as Paid
             DB::table('debts')
                 ->where('user_id', $payment->user_id)
@@ -131,10 +158,10 @@ class PaymentController extends Controller
         DB::beginTransaction();
         try {
             $payment = DB::table('payments')->where('id', $id)->first();
-            
+
             // Mark Payment as Rejected
             DB::table('payments')->where('id', $id)->update(['status' => 'rejected', 'updated_at' => now()]);
-            
+
             // Return corresponding Debt from in_review back to pending
             DB::table('debts')
                 ->where('user_id', $payment->user_id)
@@ -151,39 +178,40 @@ class PaymentController extends Controller
     }
 
     /**
-     * Real API Update for BCV Exchange Rate
+     * Consul BCV rate from free public API — NO saves to DB.
+     * The frontend shows the preview and the user clicks "Guardar Tasa" to persist.
      */
     public function updateRateFromApi()
     {
         try {
-            $response = \Illuminate\Support\Facades\Http::withoutVerifying()->withHeaders([
-                'x-dolarvzla-key' => '2320db1bc8b81274ea5552c7d0158512b39cecd259f05eb477a71ea6231d26d1',
-            ])->get('https://api.dolarvzla.com/public/bcv/exchange-rate');
+            // API pública BCV — sin key, sin costo
+            $response = \Illuminate\Support\Facades\Http::withoutVerifying()
+                ->timeout(10)
+                ->get('https://bcv-api.rafnixg.dev/rates/');
 
-            // Optionally, handle their /list endpoint if that's what we get
             $data = $response->json();
-            
-            if ($response->successful() && isset($data['current']['usd'])) {
-                $newRate = (float) $data['current']['usd'];
 
-                DB::table('exchange_rates')->insert([
-                    'rate' => $newRate,
-                    'fetched_at' => now(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
+            if ($response->successful() && isset($data['dollar']) && $data['dollar'] > 0) {
+                return response()->json([
+                    'success' => true,
+                    'new_rate' => (float) $data['dollar'],
+                    'date' => $data['date'] ?? now()->toDateString(),
                 ]);
-
-                return response()->json(['success' => true, 'new_rate' => $newRate]);
             }
-            
-            return response()->json(['success' => false, 'message' => 'Respuesta no válida del BCV: ' . substr($response->body(), 0, 100)]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Respuesta inesperada de la API BCV.',
+            ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error API: ' . $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
         }
     }
+
     /**
-     * Store new BCV rate from manager
+     * Store BCV rate explicitly (called by "Guardar Tasa" button).
+     * Avoids duplicate entries for the same day.
      */
     public function updateRate(Request $request)
     {
@@ -191,12 +219,28 @@ class PaymentController extends Controller
             'rate' => 'required|numeric|min:0.01'
         ]);
 
-        DB::table('exchange_rates')->insert([
-            'rate' => $request->rate,
-            'fetched_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // Avoid saving the same day twice (upsert by date)
+        $exists = DB::table('exchange_rates')
+            ->whereDate('fetched_at', today())
+            ->exists();
+
+        if ($exists) {
+            // Update today's record instead of inserting a duplicate
+            DB::table('exchange_rates')
+                ->whereDate('fetched_at', today())
+                ->update([
+                    'rate' => $request->rate,
+                    'fetched_at' => now(),
+                    'updated_at' => now(),
+                ]);
+        } else {
+            DB::table('exchange_rates')->insert([
+                'rate' => $request->rate,
+                'fetched_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         return response()->json(['success' => true]);
     }

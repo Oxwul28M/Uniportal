@@ -3,7 +3,8 @@
     <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 relative">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
-            <p class="text-gray-500 text-sm mt-1">Administra el acceso institucional y los roles de usuario con precisión.</p>
+            <p class="text-gray-500 text-sm mt-1">Administra el acceso institucional y los roles de usuario con
+                precisión.</p>
         </div>
         <div class="flex items-center gap-3" x-data="{ search: '{{ request('search') }}' }">
             <form action="{{ route('admin.users.index') }}" method="GET" class="relative group">
@@ -26,11 +27,10 @@
             loadingAction: null,
             users: {{ json_encode($users->items()) }},
             
-            async suspendUser(id) {
-                if(!confirm('Are you sure you want to suspend this user?')) return;
-                this.loadingAction = 'suspend-' + id;
+            async toggleStatus(id) {
+                this.loadingAction = 'toggle-' + id;
                 try {
-                    const response = await fetch(`/admin/users/${id}/suspend`, {
+                    const response = await fetch(`/admin/users/${id}/toggle-status`, {
                         method: 'PATCH',
                         headers: {
                             'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
@@ -40,30 +40,16 @@
                     const data = await response.json();
                     if(data.success) {
                         const index = this.users.findIndex(u => u.id === id);
-                        if(index !== -1) this.users[index].status = 'suspended';
+                        if(index !== -1) {
+                            this.users[index].status = data.user.status;
+                            this.$dispatch('notify', {message: data.message, type: 'success'});
+                        }
                     }
                 } catch(e) { console.error(e); }
                 this.loadingAction = null;
             },
 
-            async deleteUser(id) {
-                if(!confirm('Permanently delete this user? This cannot be undone.')) return;
-                this.loadingAction = 'delete-' + id;
-                try {
-                    const response = await fetch(`/admin/users/${id}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                            'Accept': 'application/json'
-                        }
-                    });
-                    const data = await response.json();
-                    if(data.success) {
-                        this.users = this.users.filter(u => u.id !== id);
-                    }
-                } catch(e) { console.error(e); }
-                this.loadingAction = null;
-            },
+
 
             async storeUser(e) {
                 const formData = new FormData(e.target);
@@ -125,7 +111,8 @@
                     Directorio Institucional
                 </h2>
                 <div class="flex items-center gap-2">
-                    <button @click="$dispatch('notify', {message: 'Filtros avanzados en desarrollo.', type: 'info'})" class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-xs font-semibold border border-gray-200 transition-all hover:bg-gray-100 shadow-sm">
+                    <button @click="$dispatch('notify', {message: 'Filtros avanzados en desarrollo.', type: 'info'})"
+                        class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-xs font-semibold border border-gray-200 transition-all hover:bg-gray-100 shadow-sm">
                         <span class="material-symbols-outlined text-sm">filter_list</span> Filtrar
                     </button>
                 </div>
@@ -135,8 +122,7 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50 border-b border-gray-100">
-                            <th
-                                class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                 Información Personal</th>
                             <th
                                 class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
@@ -164,8 +150,7 @@
                                             </template>
                                         </div>
                                         <div>
-                                            <p class="text-sm font-bold text-gray-900"
-                                                x-text="user.name"></p>
+                                            <p class="text-sm font-bold text-gray-900" x-text="user.name"></p>
                                             <p class="text-xs text-gray-500" x-text="user.email">
                                             </p>
                                         </div>
@@ -183,22 +168,23 @@
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2"
-                                        x-show="loadingAction !== 'suspend-' + user.id && loadingAction !== 'delete-' + user.id">
+                                        x-show="loadingAction !== 'toggle-' + user.id">
                                         <button @click="editingUser = user"
-                                            class="p-2 text-gray-400 hover:text-brand-800 hover:bg-brand-50 rounded-lg transition-colors" title="Editar">
+                                            class="p-2 text-gray-400 hover:text-brand-800 hover:bg-brand-50 rounded-lg transition-colors"
+                                            title="Editar">
                                             <span class="material-symbols-outlined text-lg">edit</span>
                                         </button>
-                                        <button @click="suspendUser(user.id)"
-                                            class="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Suspender">
-                                            <span class="material-symbols-outlined text-lg">block</span>
+                                        <button @click="toggleStatus(user.id)"
+                                            class="p-2 rounded-lg transition-colors border shadow-sm" :class="user.status === 'active' 
+                                                ? 'text-amber-600 hover:bg-amber-50 border-amber-100' 
+                                                : 'text-emerald-600 hover:bg-emerald-50 border-emerald-100'"
+                                            :title="user.status === 'active' ? 'Suspender Usuario' : 'Activar Usuario'">
+                                            <span class="material-symbols-outlined text-lg"
+                                                x-text="user.status === 'active' ? 'block' : 'undo'"></span>
                                         </button>
-                                        <button @click="deleteUser(user.id)"
-                                            class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
-                                            <span class="material-symbols-outlined text-lg">delete</span>
-                                        </button>
+
                                     </div>
-                                    <div class="flex justify-end p-2"
-                                        x-show="loadingAction === 'suspend-' + user.id || loadingAction === 'delete-' + user.id">
+                                    <div class="flex justify-end p-2" x-show="loadingAction === 'toggle-' + user.id">
                                         <span
                                             class="animate-spin material-symbols-outlined text-brand-800 text-sm">refresh</span>
                                     </div>
@@ -217,7 +203,8 @@
         <!-- New User Modal -->
         <template x-teleport="body">
             <div x-show="newUserModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                <div @click="newUserModal = false" class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity"></div>
+                <div @click="newUserModal = false"
+                    class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity"></div>
                 <div class="bg-white relative w-full max-w-md rounded-3xl shadow-2xl p-8"
                     x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
                     x-transition:enter-end="opacity-100 scale-100">
@@ -247,8 +234,7 @@
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="space-y-1.5">
-                                <label
-                                    class="text-sm font-semibold text-gray-700">Rol</label>
+                                <label class="text-sm font-semibold text-gray-700">Rol</label>
                                 <select name="role" required
                                     class="w-full bg-gray-50 text-gray-900 border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-800/20 focus:border-brand-800 transition-all shadow-inner capitalize">
                                     <option value="student">student</option>
@@ -258,8 +244,7 @@
                                 </select>
                             </div>
                             <div class="space-y-1.5">
-                                <label
-                                    class="text-sm font-semibold text-gray-700">Contraseña</label>
+                                <label class="text-sm font-semibold text-gray-700">Contraseña</label>
                                 <input type="password" name="password" required
                                     class="w-full bg-gray-50 text-gray-900 border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-800/20 focus:border-brand-800 transition-all shadow-inner">
                             </div>
@@ -279,7 +264,8 @@
         <!-- Edit User Modal -->
         <template x-teleport="body">
             <div x-show="editingUser" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                <div @click="editingUser = null" class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity"></div>
+                <div @click="editingUser = null"
+                    class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity"></div>
                 <div class="bg-white relative w-full max-w-md rounded-3xl shadow-2xl p-8"
                     x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
                     x-transition:enter-end="opacity-100 scale-100">
@@ -310,8 +296,7 @@
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="space-y-1.5">
-                                <label
-                                    class="text-sm font-semibold text-gray-700">Rol</label>
+                                <label class="text-sm font-semibold text-gray-700">Rol</label>
                                 <select name="role" x-model="editingUser.role" required
                                     class="w-full bg-gray-50 text-gray-900 border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-800/20 focus:border-brand-800 transition-all shadow-inner capitalize">
                                     <option value="student">student</option>
@@ -331,7 +316,8 @@
                             <template x-if="loadingAction === 'update-user'">
                                 <span class="animate-spin material-symbols-outlined text-sm">refresh</span>
                             </template>
-                            <span x-text="loadingAction === 'update-user' ? 'ACTUALIZANDO...' : 'GUARDAR CAMBIOS'"></span>
+                            <span
+                                x-text="loadingAction === 'update-user' ? 'ACTUALIZANDO...' : 'GUARDAR CAMBIOS'"></span>
                         </button>
                     </form>
                 </div>

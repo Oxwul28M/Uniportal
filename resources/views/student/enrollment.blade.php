@@ -87,7 +87,19 @@
             <div class="flex gap-4 justify-center">
                 <button @click="step = 1"
                     class="px-8 py-4 text-sm font-black text-slate-400 hover:text-slate-800 transition-all uppercase tracking-widest">Atrás</button>
-                <button @click="step = 3"
+                <button @click="async () => {
+                        let res = await fetch('{{ route('student.enrollment.store') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
+                            },
+                            body: JSON.stringify({ subjects: selectedSubjects })
+                        });
+                        let data = await res.json();
+                        if(data.success) { step = 3; }
+                    }
+                "
                     class="bg-blue-600 text-white px-10 py-4 rounded-2xl text-sm font-black shadow-xl shadow-blue-600/20 transition-all">CONFIRMAR
                     INSCRIPCIÓN</button>
             </div>

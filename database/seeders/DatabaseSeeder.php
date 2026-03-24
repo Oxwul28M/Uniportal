@@ -75,14 +75,59 @@ class DatabaseSeeder extends Seeder
             'created_at' => now(),
         ]);
 
-        // 4. Crear un Curso de prueba
-        $courseId = DB::table('courses')->insertGetId([
-            'name' => 'Programación Web con Laravel',
-            'code' => 'LAR-12',
-            'teacher_name' => $teacher->name,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // 4. Crear Cursos de prueba
+        $teacherId = $teacher->id;
+        $coursesArr = [
+            [
+                'name' => 'Redes de Computadoras',
+                'code' => 'RED-01',
+                'teacher_name' => 'Profesor Arreaza',
+                'teacher_id' => $teacherId,
+                'section' => 'A',
+                'schedule_day' => 'Lunes',
+                'schedule_time' => '08:00 AM - 10:00 AM',
+                'room' => 'LAB L-204',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Bases de Datos II',
+                'code' => 'BD-02',
+                'teacher_name' => 'Profesor Arreaza',
+                'teacher_id' => $teacherId,
+                'section' => 'A',
+                'schedule_day' => 'Martes',
+                'schedule_time' => '10:30 AM - 12:30 PM',
+                'room' => 'AULA 03',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Sistemas Operativos',
+                'code' => 'SO-03',
+                'teacher_name' => 'Profesor Arreaza',
+                'teacher_id' => $teacherId,
+                'section' => 'B',
+                'schedule_day' => 'Miércoles',
+                'schedule_time' => '02:00 PM - 04:00 PM',
+                'room' => 'AUDITORIO',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ];
+
+        foreach ($coursesArr as $c) {
+            $courseId = DB::table('courses')->insertGetId($c);
+
+            // Inscribir al estudiante en todos los cursos
+            DB::table('enrollments')->insert([
+                'student_id' => $student->id,
+                'course_id' => $courseId,
+                'period' => '2026-I',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         // 5. Crear una Calificación (Nota)
         DB::table('grades')->insert([

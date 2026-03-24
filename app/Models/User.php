@@ -47,4 +47,18 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /** Relación: Cursos en los que el alumno está inscrito. */
+    public function enrolledCourses()
+    {
+        return $this->belongsToMany(Course::class, 'enrollments', 'student_id', 'course_id')
+                    ->withPivot('period')
+                    ->withTimestamps();
+    }
+
+    /** Relación: Cursos que el profesor tiene asignados. */
+    public function assignedCourses()
+    {
+        return $this->hasMany(Course::class, 'teacher_id');
+    }
 }

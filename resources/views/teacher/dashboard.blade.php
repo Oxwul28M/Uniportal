@@ -17,7 +17,7 @@
                     ¡Buen día, Prof. <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white">{{ explode(' ', Auth::user()->name)[0] }}</span>! 🍎
                 </h1>
                 <p class="text-blue-100/80 text-lg max-w-xl font-medium leading-relaxed">
-                    Tu portal académico está actualizado. Revisa tus secciones, gestiona calificaciones y mantente al día con tu agenda académica.
+                    Gestiona tus secciones, califica a tus estudiantes y organiza tu agenda académica de forma eficiente.
                 </p>
             </div>
 
@@ -145,15 +145,6 @@
                 </button>
             </div>
 
-            <!-- Promotion Card -->
-            <div class="rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-brand-800 p-8 text-white shadow-xl shadow-blue-600/20 relative overflow-hidden">
-                <div class="absolute -right-10 -bottom-10 size-40 bg-white/10 rounded-full blur-3xl"></div>
-                <h4 class="text-xl font-black mb-4 tracking-tight">Carga de Notas v2.0</h4>
-                <p class="text-blue-100/70 text-sm font-medium leading-relaxed mb-8">Ahora puedes importar calificaciones directamente desde archivos Excel. ¡Ahorra tiempo!</p>
-                <button class="px-6 py-3 bg-white text-brand-800 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-50 transition-colors shadow-lg">
-                    EXPLORAR FUNCIÓN
-                </button>
-            </div>
         </div>
     </div>
 </x-dashboard-layout>

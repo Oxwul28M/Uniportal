@@ -16,11 +16,11 @@ class ManagerController extends Controller
      */
     public function dashboard()
     {
-        $latestRate = Cache::remember('latest_exchange_rate', 300, function() {
+        $latestRate = Cache::remember('latest_exchange_rate', 300, function () {
             return DB::table('exchange_rates')->latest('fetched_at')->first();
         });
 
-        $stats = Cache::remember('manager_dashboard_stats', 300, function() {
+        $stats = Cache::remember('manager_dashboard_stats', 300, function () {
             return [
                 'pendingCount' => DB::table('payments')->where('status', 'pending')->count(),
                 'totalUsd' => DB::table('payments')->where('status', 'approved')->sum('amount_usd'),
@@ -29,16 +29,22 @@ class ManagerController extends Controller
 
         $pendingCount = $stats['pendingCount'];
         $totalUsd = $stats['totalUsd'];
-        
+
         $myPosts = Post::where('user_id', Auth::id())->latest()->get();
+
+        $courses = DB::table('courses')->select('id', 'name', 'code')->orderBy('name')->get();
+        $students = User::where('role', 'student')->where('status', 'active')->select('id', 'name', 'email')->orderBy('name')->get();
 
         return view('manager.dashboard', [
             'latestRate' => $latestRate,
             'pendingCount' => $pendingCount,
             'totalUsd' => $totalUsd,
             'myPosts' => $myPosts,
+            'courses' => $courses,
+            'students' => $students,
         ]);
     }
+
 
     /**
      * View all pending payments.
@@ -53,26 +59,26 @@ class ManagerController extends Controller
             ->latest()
             ->paginate(15);
 
-        return view('manager.payments', compact('payments'));
+        $courses = DB::table('courses')->select('id', 'name', 'code')->orderBy('name')->get();
+        $students = User::where('role', 'student')->where('status', 'active')->select('id', 'name', 'email')->orderBy('name')->get();
+
+        return view('manager.payments', compact('payments', 'courses', 'students'));
     }
 
     /**
-     * View financial reports.
+     * View financial reports / Approved Payments Log.
      */
     public function reports()
     {
-        // Usamos DATE_PART para Postgres (Supabase)
-        $monthlyEarnings = DB::table('payments')
-            ->where('status', 'approved')
-            ->select(
-                DB::raw('SUM(amount_usd) as total'),
-                DB::raw("CAST(EXTRACT(MONTH FROM created_at) AS INTEGER) as month")
-            )
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get();
+        $payments = DB::table('payments')
+            ->join('users', 'payments.user_id', '=', 'users.id')
+            ->leftJoin('fees', 'payments.fee_id', '=', 'fees.id')
+            ->select('payments.*', 'users.name as student_name', 'fees.name as concept_name')
+            ->where('payments.status', 'approved')
+            ->orderBy('payments.created_at', 'desc')
+            ->paginate(20);
 
-        return view('manager.reports', compact('monthlyEarnings'));
+        return view('manager.reports', compact('payments'));
     }
 
     /**
@@ -100,10 +106,10 @@ class ManagerController extends Controller
 
         $callback = function () use ($payments, $columns) {
             $file = fopen('php://output', 'w');
-            
+
             // Add BOM for Excel UTF-8 support
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            
+
             // Format headers explicitly with ; to fix Spanish Excel
             fputcsv($file, $columns, ';');
 
@@ -147,9 +153,9 @@ class ManagerController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%$search%")
-                  ->orWhere('email', 'like', "%$search%");
+                    ->orWhere('email', 'like', "%$search%");
             });
         }
 
@@ -163,7 +169,7 @@ class ManagerController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::whereIn('role', ['teacher', 'student'])->findOrFail($id);
-        
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
@@ -192,6 +198,26 @@ class ManagerController extends Controller
     }
 
     /**
+     * Toggle user status (Manager version).
+     */
+    public function toggleStatus($id)
+    {
+        $user = User::whereIn('role', ['teacher', 'student'])->findOrFail($id);
+        $user->status = ($user->status === 'active') ? 'suspended' : 'active';
+        $user->save();
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Estado de {$user->name} cambiado a {$user->status}.",
+                'user' => $user
+            ]);
+        }
+
+        return back()->with('success', "Estado de {$user->name} actualizado.");
+    }
+
+    /**
      * Store a new user (Manager version).
      */
     public function store(Request $request)
@@ -215,35 +241,114 @@ class ManagerController extends Controller
     }
 
     /**
-     * Mass assign debt to all active students (Facturar Semestre)
+     * Assign new custom debt to specific target (all, course, student).
      */
     public function assignDebts(Request $request)
     {
         $request->validate([
-            'fee_id' => 'required|exists:fees,id'
+            'title' => 'required|string|max:255',
+            'price_usd' => 'required|numeric|min:0.01',
+            'target_type' => 'required|in:all,course,student',
+            'course_id' => 'required_if:target_type,course',
+            'student_id' => 'required_if:target_type,student',
         ]);
 
-        $fee = DB::table('fees')->find($request->fee_id);
-        $activeStudents = User::where('role', 'student')->where('status', 'active')->get();
+        // Crea el nuevo "fee" (concepto de pago) sobre la marcha para identificar la deuda de forma coherente.
+        $feeId = DB::table('fees')->insertGetId([
+            'name' => $request->title,
+            'price_usd' => $request->price_usd,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $students = collect();
+
+        if ($request->target_type === 'all') {
+            $students = User::where('role', 'student')->where('status', 'active')->get();
+        } elseif ($request->target_type === 'course') {
+            $studentIds = DB::table('enrollments')
+                ->where('course_id', $request->course_id)
+                ->pluck('user_id');
+            $students = User::whereIn('id', $studentIds)->where('status', 'active')->get();
+        } elseif ($request->target_type === 'student') {
+            $student = User::where('role', 'student')->where('status', 'active')->find($request->student_id);
+            if ($student) {
+                $students->push($student);
+            }
+        }
+
+        if ($students->isEmpty()) {
+            return back()->with('error', 'No se encontraron estudiantes válidos/activos para asignar esta deuda.');
+        }
 
         $debtsToInsert = [];
         $now = now();
 
-        foreach ($activeStudents as $student) {
+        foreach ($students as $student) {
             $debtsToInsert[] = [
                 'user_id' => $student->id,
-                'fee_id' => $fee->id,
-                'amount_usd' => $fee->price_usd,
+                'fee_id' => $feeId,
+                'amount_usd' => $request->price_usd,
                 'status' => 'pending',
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
         }
 
-        foreach(array_chunk($debtsToInsert, 500) as $chunk) {
+        // Chunk insert para evitar sobrecarga de la DB
+        foreach (array_chunk($debtsToInsert, 500) as $chunk) {
             DB::table('debts')->insert($chunk);
         }
 
-        return back()->with('success', count($activeStudents) . ' facturas de "' . $fee->name . '" asignadas correctamente a los estudiantes activos.');
+        return back()->with('success', count($students) . " facturas de '{$request->title}' (REF {$request->price_usd}) asignadas exitosamente.");
+    }
+
+    /**
+     * View pending registration requests.
+     */
+    public function registrationRequests()
+    {
+        $requests = User::where('status', 'pending')->latest()->paginate(20);
+        return view('manager.requests.index', compact('requests'));
+    }
+
+    /**
+     * Approve a registration request.
+     */
+    public function approve($id)
+    {
+        $user = User::findOrFail($id);
+        $user->status = 'active';
+        $user->save();
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Solicitud de ' . $user->name . ' aprobada.',
+                'user_id' => $id
+            ]);
+        }
+
+        return back()->with('success', 'La solicitud de ' . $user->name . ' ha sido aprobada.');
+    }
+
+    /**
+     * Reject a registration request.
+     */
+    public function reject($id)
+    {
+        $user = User::findOrFail($id);
+        $user->status = 'rejected';
+        $user->save();
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Solicitud de ' . $user->name . ' rechazada.',
+                'user_id' => $id
+            ]);
+        }
+
+        return back()->with('error', 'La solicitud de ' . $user->name . ' ha sido rechazada.');
     }
 }

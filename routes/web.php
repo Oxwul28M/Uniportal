@@ -8,6 +8,8 @@ use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ManagerController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\AiChatController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -26,6 +28,9 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
     // Dashboard con lógica de Roles
     Route::get('/dashboard', [HomeController::class, 'dashboard'])->name('dashboard');
 
+    // Búsqueda Global
+    Route::get('/search', [SearchController::class, 'index'])->name('search');
+
     // ── Rutas del Perfil ──
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -39,6 +44,7 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::post('/documents', [StudentController::class, 'storeDocument'])->name('documents.store');
         Route::delete('/documents/{id}', [StudentController::class, 'cancelDocument'])->name('documents.cancel');
         Route::get('/enrollment', [StudentController::class, 'enrollment'])->name('enrollment');
+        Route::post('/enrollment', [StudentController::class, 'storeEnrollment'])->name('enrollment.store');
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::get('/payments/create', [PaymentController::class, 'create'])->name('payments.create');
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
@@ -50,10 +56,14 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/users', [ManagerController::class, 'users'])->name('users.index');
         Route::post('/users', [ManagerController::class, 'store'])->name('users.store');
         Route::patch('/users/{id}', [ManagerController::class, 'update'])->name('users.update');
+        Route::patch('/users/{id}/toggle-status', [ManagerController::class, 'toggleStatus'])->name('users.toggle-status');
         Route::get('/payments', [ManagerController::class, 'payments'])->name('payments.index');
         Route::get('/reports', [ManagerController::class, 'reports'])->name('reports.index');
         Route::get('/reports/export', [ManagerController::class, 'export'])->name('reports.export');
         Route::get('/posts', [ManagerController::class, 'posts'])->name('posts.index');
+        Route::get('/registration-requests', [ManagerController::class, 'registrationRequests'])->name('requests.index');
+        Route::post('/users/{id}/approve', [ManagerController::class, 'approve'])->name('requests.approve');
+        Route::post('/users/{id}/reject', [ManagerController::class, 'reject'])->name('requests.reject');
 
         Route::post('/payments/{id}/approve', [PaymentController::class, 'approve'])->name('payments.approve');
         Route::post('/payments/{id}/reject', [PaymentController::class, 'reject'])->name('payments.reject');
@@ -68,6 +78,9 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/courses', [TeacherController::class, 'courses'])->name('courses.index');
         Route::get('/grading', [TeacherController::class, 'grading'])->name('grading.index');
         Route::get('/agenda', [TeacherController::class, 'agenda'])->name('agenda.index');
+        Route::post('/agenda', [TeacherController::class, 'storeAgenda'])->name('agenda.store');
+        Route::put('/agenda/{id}', [TeacherController::class, 'updateAgenda'])->name('agenda.update');
+        Route::delete('/agenda/{id}', [TeacherController::class, 'destroyAgenda'])->name('agenda.destroy');
 
         Route::post('/grades/store', [TeacherController::class, 'storeGrades'])->name('grades.store');
         Route::get('/grades/export-template', [TeacherController::class, 'exportTemplate'])->name('grades.export');
@@ -80,11 +93,14 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
         Route::get('/users', [AdminController::class, 'users'])->name('users.index');
         Route::get('/posts', [AdminController::class, 'posts'])->name('posts.index');
         Route::get('/security', [AdminController::class, 'security'])->name('security.index');
+        Route::get('/reports', [AdminController::class, 'reports'])->name('reports.index');
+        Route::get('/reports/export', [AdminController::class, 'export'])->name('reports.export');
         Route::get('/registration-requests', [AdminController::class, 'registrationRequests'])->name('requests.index');
 
         Route::post('/users', [AdminController::class, 'store'])->name('users.store');
         Route::patch('/users/{id}', [AdminController::class, 'update'])->name('users.update');
         Route::patch('/users/{id}/suspend', [AdminController::class, 'suspend'])->name('users.suspend');
+        Route::patch('/users/{id}/toggle-status', [AdminController::class, 'toggleStatus'])->name('users.toggle-status');
         Route::delete('/users/{id}', [AdminController::class, 'destroy'])->name('users.destroy');
         Route::post('/users/{id}/approve', [AdminController::class, 'approve'])->name('requests.approve');
         Route::post('/users/{id}/reject', [AdminController::class, 'reject'])->name('requests.reject');
@@ -100,6 +116,12 @@ Route::middleware(['auth', 'verified', 'active'])->group(function () {
     });
 
     Route::get('/api/bcv/update', [PaymentController::class, 'updateRateFromApi'])->name('api.bcv.update');
+
+    // Tasa BCV manual (Admin + Manager)
+    Route::middleware(['role:admin,manager'])->post('/bcv/update', [PaymentController::class, 'updateRate'])->name('bcv.update');
+
+    // Chatbot IA (Student)
+    Route::middleware(['role:student'])->post('/ai/chat', [AiChatController::class, 'chat'])->name('ai.chat');
 
 });
 

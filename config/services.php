@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'dolarvzla' => [
+        'key' => env('BCV_API_KEY'),
+    ],
+
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+    ],
+
 ];

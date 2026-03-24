@@ -3,14 +3,17 @@
     <div class="flex items-center justify-between mb-8">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Gestión de Registro</h1>
-            <p class="text-gray-500 text-sm mt-1">Administra y procesa las solicitudes de inscripción entrantes con eficiencia.</p>
+            <p class="text-gray-500 text-sm mt-1">Administra y procesa las solicitudes de inscripción entrantes con
+                eficiencia.</p>
         </div>
         <div class="flex items-center gap-3">
-            <button x-data="" x-on:click.prevent="$dispatch('open-modal', 'assign-debts-modal')" class="bg-gradient-to-r from-brand-800 to-blue-600 hover:from-brand-900 hover:to-blue-700 text-white font-semibold flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm transition-all shadow-sm">
+            <button x-data="" x-on:click.prevent="$dispatch('open-modal', 'assign-debts-modal')"
+                class="bg-gradient-to-r from-brand-800 to-blue-600 hover:from-brand-900 hover:to-blue-700 text-white font-semibold flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm transition-all shadow-sm">
                 <span class="material-symbols-outlined text-sm">payments</span>
                 Facturar Semestre
             </button>
-            <button x-data="" x-on:click.prevent="$dispatch('open-modal', 'create-fee-modal')" class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm transition-all shadow-sm">
+            <button x-data="" x-on:click.prevent="$dispatch('open-modal', 'create-fee-modal')"
+                class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm transition-all shadow-sm">
                 <span class="material-symbols-outlined text-sm">add</span>
                 Nuevo Arancel
             </button>
@@ -53,7 +56,8 @@
             class="group flex flex-col gap-3 rounded-2xl p-6 bg-white border border-gray-200 shadow-sm transition-all hover:shadow-md">
             <div class="flex items-center justify-between">
                 <p class="text-gray-500 text-sm font-semibold">Aprobadas Hoy</p>
-                <span class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform">
+                <span
+                    class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform">
                     <span class="material-symbols-outlined text-xl">check_circle</span>
                 </span>
             </div>
@@ -62,56 +66,18 @@
             </div>
         </div>
 
-        <!-- Tasa BCV (Admin Sync) -->
-        <div x-data="{
-            fetchingRate: false,
-            async fetchBcvRate() {
-                if(this.fetchingRate) return;
-                this.fetchingRate = true;
-                try {
-                    const response = await fetch('{{ route('api.bcv.update') }}', {
-                        method: 'GET',
-                        headers: { 'Accept': 'application/json' }
-                    });
-                    const data = await response.json();
-                    if(data.success) {
-                        window.location.reload();
-                    } else {
-                        this.$dispatch('notify', {message: data.message || 'Error al actualizar la tasa del BCV.', type: 'error'});
-                    }
-                } catch(e) { 
-                    console.error(e); 
-                    this.$dispatch('notify', {message: 'No se pudo conectar con la API de BDV.', type: 'error'});
-                }
-                this.fetchingRate = false;
-            }
-        }" class="group flex flex-col gap-3 rounded-2xl p-6 bg-slate-50 border border-gray-200 shadow-sm transition-all hover:shadow-md">
-            <div class="flex items-center justify-between">
-                <p class="text-brand-700 text-xs font-bold uppercase tracking-widest">Tasa BCV Oficial</p>
-                <button @click="fetchBcvRate()" :disabled="fetchingRate" class="text-brand-600 hover:text-brand-800 transition-colors bg-white rounded-lg p-1.5 shadow-sm border border-gray-100 disabled:opacity-50" title="Sincronizar BCV">
-                    <span class="material-symbols-outlined text-sm block" :class="{'animate-spin': fetchingRate}">sync</span>
-                </button>
-            </div>
-            <div class="flex flex-col gap-1">
-                <p class="text-gray-900 text-3xl font-bold">
-                    {{ number_format(\Illuminate\Support\Facades\DB::table('exchange_rates')->latest('fetched_at')->first()->rate ?? 61.20, 2) }} 
-                    <span class="text-sm font-medium text-gray-500">Bs/$</span>
-                </p>
-                <p class="text-[10px] text-gray-400 font-medium">
-                    Última actualización: {{ \Illuminate\Support\Facades\DB::table('exchange_rates')->latest('fetched_at')->first() ? \Carbon\Carbon::parse(\Illuminate\Support\Facades\DB::table('exchange_rates')->latest('fetched_at')->first()->fetched_at)->diffForHumans() : 'N/A' }}
-                </p>
-            </div>
-        </div>
-    </div>
+        {{-- Tasa BCV Dinámica (Admin) --}}
+        <x-bcv-rate-card
+            :rate="\Illuminate\Support\Facades\DB::table('exchange_rates')->latest('fetched_at')->first()" />
+
+    </div>{{-- /Stats Ribbon --}}
 
     <!-- Dashboard Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Announcements Column -->
         <div class="lg:col-span-2 space-y-8">
-            <div
-                class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div
-                    class="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
                     <div class="flex items-center gap-3">
                         <span class="material-symbols-outlined text-brand-800">campaign</span>
                         <h3 class="text-lg font-bold text-gray-900">Anuncios & Noticias</h3>
@@ -124,11 +90,9 @@
 
                 <div class="divide-y divide-gray-100">
                     @forelse($recentPosts as $post)
-                        <div
-                            class="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors group">
+                        <div class="p-6 flex items-center justify-between hover:bg-gray-50 transition-colors group">
                             <div class="flex items-center gap-5">
-                                <div
-                                    class="size-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
+                                <div class="size-12 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
                                     @if($post->image_url)
                                         <img src="{{ $post->image_url }}" class="w-full h-full object-cover">
                                     @else
@@ -139,9 +103,9 @@
                                 </div>
                                 <div>
                                     <h5 class="text-sm font-bold text-gray-900 leading-tight">
-                                        {{ $post->title }}</h5>
-                                    <div
-                                        class="flex items-center gap-3 mt-1.5 text-xs font-medium">
+                                        {{ $post->title }}
+                                    </h5>
+                                    <div class="flex items-center gap-3 mt-1.5 text-xs font-medium">
                                         <span class="text-brand-700 capitalize">{{ $post->category }}</span>
                                         <span class="size-1 bg-gray-300 rounded-full"></span>
                                         <span class="text-gray-500">
@@ -168,8 +132,7 @@
 
         <!-- Sidebar / Recent Activity -->
         <div class="lg:col-span-4 space-y-6">
-            <div
-                class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                 <h4 class="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">
                     Actualizaciones Recientes</h4>
 
@@ -251,7 +214,7 @@
                     <div class="flex items-start justify-between">
                         <span
                             class="px-3 py-1.5 rounded-lg text-xs font-semibold capitalize border
-                                        {{ $post->category === 'evento' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-brand-50 text-brand-700 border-brand-200' }}">
+                                                {{ $post->category === 'evento' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-brand-50 text-brand-700 border-brand-200' }}">
                             {{ $post->category }}
                         </span>
                         <span class="text-xs font-medium text-gray-400 flex items-center gap-1.5">
@@ -320,8 +283,7 @@
 
                         <div class="grid grid-cols-2 gap-4">
                             <div class="space-y-1.5">
-                                <label
-                                    class="text-sm font-semibold text-gray-700">Categoría</label>
+                                <label class="text-sm font-semibold text-gray-700">Categoría</label>
                                 <select name="category" required x-model="postCategory"
                                     class="w-full bg-gray-50 text-gray-900 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-800/20 focus:border-brand-800 transition-all text-sm shadow-inner">
                                     <option value="noticia">Noticia</option>
@@ -329,16 +291,14 @@
                                 </select>
                             </div>
                             <div class="space-y-1.5">
-                                <label
-                                    class="text-sm font-semibold text-gray-700">Imagen</label>
+                                <label class="text-sm font-semibold text-gray-700">Imagen</label>
                                 <input type="file" name="image" accept="image/*"
                                     class="w-full bg-gray-50 text-gray-900 border-gray-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-brand-800/20 focus:border-brand-800 transition-all shadow-inner file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100">
                             </div>
                         </div>
 
                         <div class="space-y-1.5">
-                            <label
-                                class="text-sm font-semibold text-gray-700">Contenido</label>
+                            <label class="text-sm font-semibold text-gray-700">Contenido</label>
                             <textarea name="content" rows="4" required
                                 class="w-full bg-gray-50 text-gray-900 border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-800/20 focus:border-brand-800 transition-all text-sm shadow-inner resize-none placeholder-gray-400">{{ old('content') }}</textarea>
                         </div>
@@ -381,9 +341,11 @@
                 </div>
 
                 <div class="space-y-1.5">
-                    <label for="price_usd" class="text-sm font-semibold text-gray-700">Precio en Dólares (USD)</label>
+                    <label for="price_usd" class="text-sm font-semibold text-gray-700">Precio en Referencial
+                        (REF)</label>
                     <div class="relative">
-                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
+                        <span
+                            class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-xs">REF</span>
                         <input id="price_usd" name="price_usd" type="number" step="0.01" min="0.01" required
                             class="w-full bg-gray-50 text-gray-900 border-gray-200 rounded-xl pl-8 pr-4 py-3 text-sm focus:ring-2 focus:ring-brand-800/20 focus:border-brand-800 transition-all placeholder-gray-400"
                             placeholder="0.00" />
@@ -412,18 +374,21 @@
             @csrf
 
             <div class="flex items-center gap-3 text-brand-800 mb-6 flex-col justify-center text-center">
-                <span class="material-symbols-outlined text-5xl text-rose-500 bg-rose-50 p-4 rounded-full">receipt_long</span>
+                <span
+                    class="material-symbols-outlined text-5xl text-rose-500 bg-rose-50 p-4 rounded-full">receipt_long</span>
                 <h2 class="text-xl font-bold text-gray-900 mt-2">
                     Facturar Semestre a Estudiantes
                 </h2>
                 <p class="text-sm text-gray-500 max-w-sm mt-1 leading-relaxed">
-                    Esta acción asignará un saldo pendiente (deuda) automáticamente a <strong>todos los estudiantes activos</strong> en el sistema de manera instantánea.
+                    Esta acción asignará un saldo pendiente (deuda) automáticamente a <strong>todos los estudiantes
+                        activos</strong> en el sistema de manera instantánea.
                 </p>
             </div>
 
             <div class="space-y-4">
                 <div class="space-y-1.5 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <label for="fee_id" class="text-sm font-semibold text-gray-700 block mb-2">Selecciona el concepto a facturar:</label>
+                    <label for="fee_id" class="text-sm font-semibold text-gray-700 block mb-2">Selecciona el
+                        concepto a facturar:</label>
                     <select id="fee_id" name="fee_id" required
                         class="w-full bg-white text-gray-900 border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-brand-800/20 focus:border-brand-800 transition-all font-semibold shadow-sm">
                         <option value="" disabled selected>Elige un arancel...</option>
@@ -436,7 +401,8 @@
                 </div>
                 <div class="flex items-center gap-2 text-rose-600 bg-rose-50 p-3 rounded-lg border border-rose-100">
                     <span class="material-symbols-outlined text-lg">warning</span>
-                    <p class="text-xs font-semibold">Aviso: Esta acción masiva operará sobre todos los estudiantes con estatus "Activo".</p>
+                    <p class="text-xs font-semibold">Aviso: Esta acción masiva operará sobre todos los estudiantes
+                        con estatus "Activo".</p>
                 </div>
             </div>
 

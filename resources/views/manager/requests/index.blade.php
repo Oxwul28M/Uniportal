@@ -6,7 +6,7 @@
             async processRequest(id, action) {
                 this.loadingAction = action + '-' + id;
                 try {
-                    const response = await fetch(`/admin/requests/${id}/${action}`, {
+                    const response = await fetch(`/manager/users/${id}/${action}`, {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
@@ -16,44 +16,28 @@
                     const data = await response.json();
                     if(data.success) {
                         this.requests = this.requests.filter(r => r.id !== id);
-        loadingAction: null,
-        requests: {{ json_encode($requests->items()) }},
-        
-        async processRequest(id, action) {
-            this.loadingAction = action + '-' + id;
-            try {
-                const response = await fetch(`/admin/requests/${id}/${action}`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                        'Accept': 'application/json'
                     }
+                } catch(e) { console.error(e); }
+                this.loadingAction = null;
+            },
+            search: '',
+            exportData() {
+                let csv = 'Estudiante,Email,Estado,Fecha\n';
+                document.querySelectorAll('tbody tr').forEach(tr => {
+                    const name = tr.querySelector('.student-name').innerText;
+                    const email = tr.querySelector('.student-email').innerText;
+                    const status = tr.querySelector('.student-status').innerText;
+                    const date = tr.querySelector('.student-date').innerText;
+                    csv += `${name},${email},${status},${date}\n`;
                 });
-                const data = await response.json();
-                if(data.success) {
-                    this.requests = this.requests.filter(r => r.id !== id);
-                }
-            } catch(e) { console.error(e); }
-            this.loadingAction = null;
-        },
-        search: '',
-        exportData() {
-            let csv = 'Estudiante,Email,Estado,Fecha\n';
-            document.querySelectorAll('tbody tr').forEach(tr => {
-                const name = tr.querySelector('.student-name').innerText;
-                const email = tr.querySelector('.student-email').innerText;
-                const status = tr.querySelector('.student-status').innerText;
-                const date = tr.querySelector('.student-date').innerText;
-                csv += `${name},${email},${status},${date}\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('href', url);
-            a.setAttribute('download', 'solicitudes_registro.csv');
-            a.click();
-        }
-    }">
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.setAttribute('href', url);
+                a.setAttribute('download', 'solicitudes_registro.csv');
+                a.click();
+            }
+        }">
         <!-- Page Header -->
         <div class="mb-8 relative">
             <h1 class="text-2xl font-bold text-gray-900">Solicitudes de Registro</h1>
@@ -111,9 +95,6 @@
                         <input type="text" x-model="search" placeholder="Filtrar por nombre..." 
                                class="w-full pl-9 pr-4 py-2 bg-gray-50 text-gray-900 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-800/20 focus:border-brand-800 outline-none transition-all shadow-inner placeholder-gray-500">
                     </div>
-                    <button @click="exportData()" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-brand-800 to-blue-600 text-white rounded-xl text-xs font-semibold shadow-md transition-all hover:-translate-y-0.5 whitespace-nowrap">
-                        <span class="material-symbols-outlined text-sm">download</span> Exportar
-                    </button>
                 </div>
             </div>
 
@@ -133,7 +114,7 @@
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-4">
                                         <div class="size-10 rounded-full bg-brand-50 flex-shrink-0 flex items-center justify-center border border-brand-100 text-brand-700 font-bold">
-                                            <img class="rounded-full w-full h-full object-cover" :src="reg.photo ? '/storage/' + reg.photo : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(reg.name) + '&background=1e3a8a&color=fff'" :alt="reg.name">
+                                            <img class="rounded-full w-full h-full object-cover" :src="'https://ui-avatars.com/api/?name=' + encodeURIComponent(reg.name) + '&background=1e3a8a&color=fff'" :alt="reg.name">
                                         </div>
                                         <div>
                                             <p class="text-sm font-bold text-gray-900 group-hover:text-brand-800 transition-colors student-name" x-text="reg.name"></p>

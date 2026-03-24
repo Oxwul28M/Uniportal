@@ -1,46 +1,69 @@
-# Documentación del Proyecto: Portal Universitario
+# 🎓 UniPortal — Sistema de Gestión Universitaria Integral
 
-## 1. Visión General
-Desarrollo de un Portal Universitario funcional y moderno que utiliza las tecnologías ya establecidas en el proyecto. El sistema permitirá la gestión académica (notas, cursos) y contará con un **Chatbot con Inteligencia Artificial** para asistir a los estudiantes.
-
-## 2. Tecnologías (Stack Actual del Proyecto)
-
-Se confirma el uso estricto de las herramientas ya instaladas y configuradas:
-
-### Backend & Autenticación
-*   **Laravel 12**: Framework PHP principal.
-*   **Laravel Breeze**: Sistema de autenticación ya instalado.
-*   **Supabase (PostgreSQL)**: Base de datos en la nube para facilitar la colaboración.
-
-### Frontend (Visual)
-*   **Blade Templates**: Motor de plantillas nativo.
-*   **Tailwind CSS**: Framework de estilos (Ya configurado con Vite).
-*   **Alpine.js**: Interactividad ligera (Dropdowns, Modales).
-
-### Inteligencia Artificial (Costo Cero)
-*   **Gemini API (Google)**: Usaremos la capa gratuita de Gemini para potenciar el chatbot sin incurrir en costos.
-
-## 3. Arquitectura del Sistema
-
-### Estructura de Base de Datos (Supabase / PostgreSQL)
-Adicional a la tabla `users` (ya existente por Breeze), implementaremos:
-1.  **Courses**: Asignaturas (Nombre, Código, Profesor).
-2.  **Grades**: Calificaciones (Relación Usuario <-> Curso).
-
-### Módulos Principales
-1.  **Dashboard**:
-    *   *Estudiantes*: Vista de "Mis Cursos" y "Mis Notas".
-    *   *Profesores/Admin*: Panel para subir notas.
-2.  **Chatbot Asistente**:
-    *   Componente flotante global.
-    *   Capacidad de responder preguntas frecuentes y consultas de datos personales (ej. "Dime mi nota de Física").
-
-## 4. Plan de Implementación
-
-1.  **Validación**: Confirmar conexión Supabase y Breeze.
-2.  **Base de Datos**: Crear migraciones para `Courses` y `Grades`.
-3.  **Vistas**: Personalizar el dashboard de Breeze.
-4.  **IA Integration**: Conectar el Chatbot con la API de Gemini.
+## 1. Introducción
+UniPortal es una plataforma de gestión académica y financiera diseñada para instituciones universitarias en Venezuela. El sistema centraliza el control de inscripciones, calificaciones, cobros en divisas (REF) y atención al estudiante mediante un asistente virtual interno.
 
 ---
-**Estado**: Listo para comenzar desarrollo sobre la infraestructura existente.
+
+## 2. Arquitectura Técnica
+- **Framework:** Laravel 12 (PHP 8.2+)
+- **Base de Datos:** PostgreSQL (Alojada en Supabase)
+- **Frontend:** Tailwind CSS + Alpine.js + Material Symbols
+- **Estado de Cuenta:** Sistema bimoneda (Bs/REF) con integración de tasa BCV.
+
+---
+
+## 3. Roles y Permisos
+
+| Rol | Capacidad |
+| :--- | :--- |
+| **Admin** | Gestión total de usuarios, aranceles, noticias, seguridad y reportes económicos globales. |
+| **Manager** | Aprobación de avisos, validación de pagos estudiantiles y exportación de recaudación. |
+| **Teacher** | Gestión de cursos asignados, carga de notas (manual/Excel) y control de agenda académica. |
+| **Student** | Visualización de notas, reporte de pagos en Bs, descarga de documentos e interacción con el bot. |
+
+---
+
+## 4. Módulos Críticos
+
+### 💰 Sistema Financiero (REF / BCV)
+- **Estandarización:** El sistema utiliza la unidad **REF** (Referencial) para la contabilidad interna.
+- **Tasa BCV:** Integración con API externa para obtener la tasa oficial del día. Permite la actualización manual desde el panel Admin/Manager.
+- **Flujo de Pago:** El estudiante reporta el pago en Bolívares indicando la fecha de la transacción. El sistema busca la tasa BCV histórica de **ese día específico** para calcular la equivalencia exacta en REF.
+
+### 🤖 Chatbot Académico Interno
+- **Motor:** Sistema de procesamiento de intenciones basado en palabras clave (Keyword-based Intent Matching).
+- **Entorno:** Optimizado para Venezuela (incluye jerga, errores ortográficos comunes y términos financieros).
+- **Privacidad:** 100% local (no depende de APIs externas costosas), garantizando rapidez y ahorro de costos.
+- **Funciones:** Consulta de saldo, materias inscritas y récord de notas de forma instantánea.
+
+### 📚 Gestión Académica
+- **Carga Masiva:** Los profesores pueden descargar una plantilla de Excel, cargar las notas y reimportarlas al sistema.
+- **Agenda:** Sistema de eventos dinámico sincronizado entre profesores (creación) y estudiantes (visualización).
+
+---
+
+## 5. Instalación y Puesta en Marcha
+
+1. **Clonar y Dependencias:**
+   ```bash
+   composer install
+   npm install && npm run build
+   ```
+2. **Entorno:** Copiar `.env.example` a `.env` y configurar la base de datos Supabase.
+3. **Optimización:**
+   ```bash
+   php artisan storage:link
+   php artisan migrate --seed
+   php artisan optimize
+   ```
+
+---
+
+## 6. Seguridad y Buenas Prácticas
+- **Validación de Archivos:** Los comprobantes de pago solo aceptan formatos de imagen seguros.
+- **Middleware de Actividad:** Los usuarios suspendidos o rechazados son expulsados automáticamente del sistema en tiempo real.
+- **Protección de Datos:** Se ha desactivado el borrado físico de usuarios para preservar el histórico de datos universitarios (Soft-block vía estatus `suspended`).
+
+---
+✨ *Desarrollado con enfoque en robustez y experiencia de usuario moderna.*

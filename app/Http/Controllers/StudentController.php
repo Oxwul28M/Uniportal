@@ -27,12 +27,22 @@ class StudentController extends Controller
      */
     public function schedule()
     {
-        // For demonstration, returning a sample schedule array
-        $schedule = [
-            ['time' => '08:00 AM - 10:00 AM', 'subject' => 'Redes de Computadoras', 'room' => 'LAB L-204'],
-            ['time' => '10:30 AM - 12:30 PM', 'subject' => 'Bases de Datos II', 'room' => 'AULA 03'],
-            ['time' => '02:00 PM - 04:00 PM', 'subject' => 'Sistemas Operativos', 'room' => 'AUDITORIO'],
-        ];
+        $user = Auth::user();
+
+        // Fetch courses the student is enrolled in for the current period
+        $enrolledCourses = $user->enrolledCourses()
+            ->with('teacher')
+            ->get();
+
+        $schedule = $enrolledCourses->map(function ($course) {
+            return [
+                'time' => $course->schedule_time ?? 'Sin horario',
+                'subject' => $course->name,
+                'room' => $course->room ?? 'Por asignar',
+                'teacher' => $course->teacher->name ?? $course->teacher_name,
+                'day' => $course->schedule_day ?? 'Sin día asignado',
+            ];
+        });
 
         return view('student.schedule', compact('schedule'));
     }
@@ -42,11 +52,20 @@ class StudentController extends Controller
      */
     public function exportSchedule()
     {
-        $schedule = [
-            ['time' => '08:00 AM - 10:00 AM', 'subject' => 'Redes de Computadoras', 'room' => 'LAB L-204'],
-            ['time' => '10:30 AM - 12:30 PM', 'subject' => 'Bases de Datos II', 'room' => 'AULA 03'],
-            ['time' => '02:00 PM - 04:00 PM', 'subject' => 'Sistemas Operativos', 'room' => 'AUDITORIO'],
-        ];
+        $user = Auth::user();
+
+        $enrolledCourses = $user->enrolledCourses()
+            ->with('teacher')
+            ->get();
+
+        $schedule = $enrolledCourses->map(function ($course) {
+            return [
+                'time' => $course->schedule_time ?? 'Sin horario',
+                'subject' => $course->name,
+                'room' => $course->room ?? 'Por asignar',
+                'teacher' => $course->teacher->name ?? $course->teacher_name,
+            ];
+        });
 
         $pdf = Pdf::loadView('student.pdf-schedule', compact('schedule'));
         return $pdf->download('mi_horario_' . now()->format('Ymd') . '.pdf');
@@ -114,5 +133,35 @@ class StudentController extends Controller
     public function enrollment()
     {
         return view('student.enrollment');
+    }
+
+    /**
+     * Store enrollment.
+     */
+    public function storeEnrollment(Request $request)
+    {
+        $request->validate([
+            'subjects' => 'required|array',
+            'subjects.*' => 'exists:courses,id'
+        ]);
+
+        $user = Auth::user();
+
+        // Enrol students to selected courses with the specific period
+        foreach ($request->subjects as $courseId) {
+            DB::table('enrollments')->updateOrInsert(
+                [
+                    'student_id' => $user->id,
+                    'course_id' => $courseId,
+                    'period' => '2026-I'
+                ],
+                [
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+        }
+
+        return response()->json(['success' => true]);
     }
 }

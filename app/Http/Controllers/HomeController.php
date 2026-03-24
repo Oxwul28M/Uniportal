@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Models\AgendaItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -32,7 +33,17 @@ class HomeController extends Controller
                 ->where('status', 'pending')
                 ->sum('amount_usd');
 
-            return view('student.dashboard', compact('posts', 'pendingBalance'));
+            // Fetch upcoming agenda items for enrolled courses
+            $agendaItems = AgendaItem::whereHas('courses', function($query) use ($user) {
+                    $query->whereIn('courses.id', $user->enrolledCourses->pluck('id'));
+                })
+                ->where('event_date', '>=', now())
+                ->with(['courses'])
+                ->orderBy('event_date', 'asc')
+                ->take(5)
+                ->get();
+
+            return view('student.dashboard', compact('posts', 'pendingBalance', 'agendaItems'));
         }
 
         if ($user->role === 'teacher') {

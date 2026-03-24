@@ -43,6 +43,31 @@ class RegisteredUserController extends Controller
             'status' => 'pending', // All public registrations start as pending
         ]);
 
+        // Automatically assign registration fee
+        $feeName = 'Cuota de Inscripción';
+        $fee = \Illuminate\Support\Facades\DB::table('fees')->where('name', $feeName)->first();
+        if (!$fee) {
+            $feeId = \Illuminate\Support\Facades\DB::table('fees')->insertGetId([
+                'name' => $feeName,
+                'price_usd' => 20.00, // Default price
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $feeAmount = 20.00;
+        } else {
+            $feeId = $fee->id;
+            $feeAmount = $fee->price_usd;
+        }
+
+        \Illuminate\Support\Facades\DB::table('debts')->insert([
+            'user_id' => $user->id,
+            'fee_id' => $feeId,
+            'amount_usd' => $feeAmount,
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         event(new Registered($user));
 
         // Auth::login($user); // Comentado para evitar login automático
