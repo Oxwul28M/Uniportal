@@ -63,7 +63,7 @@ UniPortal es una plataforma de gestión académica y financiera diseñada para i
 ## 6. Seguridad y Buenas Prácticas
 - **Validación de Archivos:** Los comprobantes de pago solo aceptan formatos de imagen seguros.
 - **Middleware de Actividad:** Los usuarios suspendidos o rechazados son expulsados automáticamente del sistema en tiempo real.
-- **Protección de Datos:** Se ha desactivado el borrado físico de usuarios para preservar el histórico de datos universitarios (Soft-block vía estatus `suspended`).
+- **Protección de Datos:** Se ha desactivado el borrado físico de usuarios para preservar el historial de datos universitarios (Soft-block vía estatus `suspended`).
 
 ---
 ✨ *Desarrollado con enfoque en robustez y experiencia de usuario moderna.*
