@@ -1,69 +1,53 @@
-# 🎓 UniPortal — Sistema de Gestión Universitaria Integral
+# 🎓 UniPortal — Technical Documentation
 
-## 1. Introducción
-UniPortal es una plataforma de gestión académica y financiera diseñada para instituciones universitarias en Venezuela. El sistema centraliza el control de inscripciones, calificaciones, cobros en divisas (REF) y atención al estudiante mediante un asistente virtual interno.
+## 1. Introduction
+UniPortal is an academic and financial management platform designed for universities. The system centralizes enrollment control, grading, multi-currency payments, and student support through an internal virtual assistant.
 
 ---
 
-## 2. Arquitectura Técnica
+## 2. Technical Architecture
 - **Framework:** Laravel 12 (PHP 8.2+)
-- **Base de Datos:** PostgreSQL (Alojada en Supabase)
+- **Database:** PostgreSQL (Hosted on Supabase)
 - **Frontend:** Tailwind CSS + Alpine.js + Material Symbols
-- **Estado de Cuenta:** Sistema bimoneda (Bs/REF) con integración de tasa BCV.
+- **Asset Bundling:** Vite
+- **Financial Engine:** Dual-currency system with real-time exchange rate integration via external APIs.
 
 ---
 
-## 3. Roles y Permisos
+## 3. Roles and Permissions
 
-| Rol | Capacidad |
+| Role | Capabilities |
 | :--- | :--- |
-| **Admin** | Gestión total de usuarios, aranceles, noticias, seguridad y reportes económicos globales. |
-| **Manager** | Aprobación de avisos, validación de pagos estudiantiles y exportación de recaudación. |
-| **Teacher** | Gestión de cursos asignados, carga de notas (manual/Excel) y control de agenda académica. |
-| **Student** | Visualización de notas, reporte de pagos en Bs, descarga de documentos e interacción con el bot. |
+| **Admin** | Full system control: user management, global fee structures, news broadcasting, security settings, and global financial reporting. |
+| **Manager** | Operational control: notice approval, student payment validation, and revenue report exportation. |
+| **Teacher** | Academic management: assigned course management, bulk grading (manual or Excel), and academic agenda control. |
+| **Student** | Academic tracking: grade visualization, payment reporting, document downloads, and chatbot interaction. |
 
 ---
 
-## 4. Módulos Críticos
+## 4. Core Modules
 
-### 💰 Sistema Financiero (REF / BCV)
-- **Estandarización:** El sistema utiliza la unidad **REF** (Referencial) para la contabilidad interna.
-- **Tasa BCV:** Integración con API externa para obtener la tasa oficial del día. Permite la actualización manual desde el panel Admin/Manager.
-- **Flujo de Pago:** El estudiante reporta el pago en Bolívares indicando la fecha de la transacción. El sistema busca la tasa BCV histórica de **ese día específico** para calcular la equivalencia exacta en REF.
+### 💰 Financial System 
+- **Standardization:** The system uses a primary Reference unit (REF) for internal accounting.
+- **Exchange Rates:** Integration with external APIs to fetch daily official rates. It also allows manual overrides from the Admin/Manager panel.
+- **Payment Flow:** Students report payments in local currency by specifying the transaction date. The system automatically fetches the historical exchange rate for **that specific exact date** to accurately calculate the REF equivalent.
 
-### 🤖 Chatbot Académico Interno
-- **Motor:** Sistema de procesamiento de intenciones basado en palabras clave (Keyword-based Intent Matching).
-- **Entorno:** Optimizado para Venezuela (incluye jerga, errores ortográficos comunes y términos financieros).
-- **Privacidad:** 100% local (no depende de APIs externas costosas), garantizando rapidez y ahorro de costos.
-- **Funciones:** Consulta de saldo, materias inscritas y récord de notas de forma instantánea.
+### 🤖 Internal Academic Chatbot
+- **Engine:** Keyword-based Intent Matching system entirely built in-house.
+- **Localization:** Highly optimized for regional vocabulary, common spelling mistakes, and specific financial terms.
+- **Privacy & Cost:** 100% locally hosted. It does not rely on costly external LLM APIs, guaranteeing fast response times and zero operational costs.
+- **Capabilities:** Instant queries regarding account balances, enrolled subjects, and historical grades.
 
-### 📚 Gestión Académica
-- **Carga Masiva:** Los profesores pueden descargar una plantilla de Excel, cargar las notas y reimportarlas al sistema.
-- **Agenda:** Sistema de eventos dinámico sincronizado entre profesores (creación) y estudiantes (visualización).
-
----
-
-## 5. Instalación y Puesta en Marcha
-
-1. **Clonar y Dependencias:**
-   ```bash
-   composer install
-   npm install && npm run build
-   ```
-2. **Entorno:** Copiar `.env.example` a `.env` y configurar la base de datos Supabase.
-3. **Optimización:**
-   ```bash
-   php artisan storage:link
-   php artisan migrate --seed
-   php artisan optimize
-   ```
+### 📚 Academic Management
+- **Bulk Uploads:** Teachers can download Excel templates, input grades offline, and seamlessly re-import them into the system.
+- **Dynamic Agenda:** A synchronized event system where teachers create events and students view their unified academic schedule.
 
 ---
 
-## 6. Seguridad y Buenas Prácticas
-- **Validación de Archivos:** Los comprobantes de pago solo aceptan formatos de imagen seguros.
-- **Middleware de Actividad:** Los usuarios suspendidos o rechazados son expulsados automáticamente del sistema en tiempo real.
-- **Protección de Datos:** Se ha desactivado el borrado físico de usuarios para preservar el historial de datos universitarios (Soft-block vía estatus `suspended`).
+## 5. Security and Best Practices
+- **File Validation:** Strict MIME type and size validation for payment receipts to ensure only secure image formats are uploaded.
+- **Active Middleware:** Real-time session invalidation. Suspended or rejected users are automatically logged out of the system.
+- **Data Integrity (Soft Deletes):** Physical deletion of users is restricted. A soft-block approach (via a `suspended` status) is implemented to preserve historical university data and academic records.
 
 ---
-✨ *Desarrollado con enfoque en robustez y experiencia de usuario moderna.*
+✨ *Developed with a focus on enterprise robustness and modern user experience.*
