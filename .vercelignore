@@ -1,9 +1,0 @@
-/vendor
-/storage
-/tests
-.env
-.idea
-.phpunit.cache
-*.log
-/bootstrap/cache/.gitkeep
-/bootstrap/cache/*.php
